@@ -1,6 +1,14 @@
-# NimbleEdge AI Assistant
+<div align="center">
+  <h1 align="center">NimbleEdge AI Assistant</h1>
+  <img src="docs/static/images/assistant-logo.png" alt="DeliteAI Logo" width="200">
+  <h2 align="center">First fully On-Device conversational assistant</h2>
+</div>
 
-[![Join us on Discord](https://img.shields.io/badge/Join%20us-Discord-5865F2?logo=discord&logoColor=white)](https://discord.gg/y8WkMncstk)
+<div align="center">
+  <a href="https://discord.gg/y8WkMncstk"><img src="https://img.shields.io/badge/Discord-Join%20Us-purple?logo=discord&logoColor=white&style=for-the-badge"
+alt="Join us on Discord"></a>
+  <hr>
+</div>
 
 **NimbleEdge AI Assistant** is a private, fully on-device conversational AI assistant. Built on the **DeliteAI platform**, it delivers secure, privacy-aware, and high-performance AI experiences without compromising your data or requiring internet connectivity.
 
