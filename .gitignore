@@ -1,0 +1,53 @@
+*.iml
+.gradle
+.idea
+android/local.properties
+android/.idea/
+.DS_Store
+android/build
+android/captures
+.externalNativeBuild
+.cxx
+local.properties
+android/app/google-services.json
+android-keystore
+local/
+
+# Xcode
+DerivedData/
+build/
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata/
+*.xcscmblueprint
+
+
+# CocoaPods
+Pods/
+Podfile.lock
+
+
+
+*.xcframework
+
+
+# Archives
+*.xcarchive
+*.ipa
+
+
+# Xcode project workspace
+*.xcworkspace
+
+# User settings
+*.xcuserstate
+
+# LLM model
+ios/ChatAppNE/ChatAppNE/embedding_quantized_model.onnx
+ios/ChatAppNE/ChatAppNE/embedding_quantized_model.onnx.data
