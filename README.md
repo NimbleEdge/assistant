@@ -1,7 +1,7 @@
 <div align="center">
   <h1 align="center">NimbleEdge AI Assistant</h1>
   <img src="docs/static/images/assistant-logo.png" alt="DeliteAI Logo" width="200">
-  <h2 align="center">First fully on-device conversational assistant</h2>
+  <h2 align="center">First fully On-Device conversational assistant</h2>
 </div>
 
 <div align="center">
