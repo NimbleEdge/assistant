@@ -1,0 +1,12 @@
+/*
+ * SPDX-FileCopyrightText: (C) 2025 DeliteAI Authors
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package ai.nimbleedge.nimbleedge_chatbot.domain.models
+
+data class FillerAudio(
+    val data: ShortArray,
+    var hasPlayed: Boolean = false
+)
