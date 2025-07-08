@@ -7,7 +7,7 @@
 <div align="center">
   <a href="https://discord.gg/y8WkMncstk"><img src="https://img.shields.io/badge/Discord-Join%20Us-purple?logo=discord&logoColor=white&style=for-the-badge"
 alt="Join us on Discord"></a>
-  <a href="https://github.com/NimbleEdge/deliteAI"><img src="https://img.shields.io/badge/Explore-DeliteAI-blue?style=for-the-badge"
+  <a href="https://github.com/NimbleEdge/deliteAI"><img src="https://img.shields.io/badge/Explore-Delite%20AI-blue?style=for-the-badge"
 alt="On-device Agentic AI platform"></a>
   <hr>
 </div>
