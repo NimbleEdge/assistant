@@ -95,7 +95,7 @@ The _release_ job expects a valid keystore as configured above.
 
 ## Testing
 
-⚠️ **We currently lack comprehensive test coverage and would welcome contributions!**
+⚠️ **We are adding tests incrementally and would welcome contributions!**
 
 The standard Gradle test tasks are available:
 
