@@ -22,9 +22,11 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven {
+            url = uri("https://deliteai.s3.ap-south-1.amazonaws.com/releases-dev/android/")
+        }
     }
 }
 
-rootProject.name = "DeliteAi AI"
+rootProject.name = "NimbleEdge AI"
 include(":app")
- 
