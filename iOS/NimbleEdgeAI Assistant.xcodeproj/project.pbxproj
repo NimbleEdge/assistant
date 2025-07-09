@@ -15,7 +15,6 @@
 		E419C5342DCC8A0B007C54C4 /* ArrangedHistoryItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = E419C5332DCC8A09007C54C4 /* ArrangedHistoryItem.swift */; };
 		E457A8B72E00129E006240CC /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = E457A8B62E00129E006240CC /* GoogleService-Info.plist */; };
 		E457A8BD2E009B26006240CC /* Launch Screen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = E457A8BC2E009B26006240CC /* Launch Screen.storyboard */; };
-		E4B44B272E0A8C6F0093A371 /* libespeak-ng in Frameworks */ = {isa = PBXBuildFile; productRef = E4B44B262E0A8C6F0093A371 /* libespeak-ng */; };
 		E4F44BF82DEB01E6002272F2 /* LoaderCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4F44BF72DEB01E2002272F2 /* LoaderCell.swift */; };
 		E4F44C052DEF949B002272F2 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4F44C042DEF9496002272F2 /* Constants.swift */; };
 		E4F44C072DF20C1E002272F2 /* DeviceIdentification.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4F44C062DF20C16002272F2 /* DeviceIdentification.swift */; };
@@ -52,7 +51,6 @@
 		F18EAF7F2DD3CDD50057DCAF /* DownloadProgressManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F18EAF7E2DD3CDD30057DCAF /* DownloadProgressManager.swift */; };
 		F1C671AC2DE9073000AC2CA6 /* VoiceOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1C671AB2DE9072D00AC2CA6 /* VoiceOverlay.swift */; };
 		F1C671AE2DE9134900AC2CA6 /* SpeechRecognition.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1C671AD2DE9134000AC2CA6 /* SpeechRecognition.swift */; };
-		F1E7F9162DE0DA6400E27582 /* EspeakNGService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1E7F9152DE0DA5F00E27582 /* EspeakNGService.swift */; };
 		F1EFB7C02DBF90A40031A0E1 /* lexicon.json in Resources */ = {isa = PBXBuildFile; fileRef = F1EFB7BA2DBBB8D00031A0E1 /* lexicon.json */; };
 		F1EFB7F82DC2261C0031A0E1 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1EFB7F72DC2261C0031A0E1 /* HistoryView.swift */; };
 		F1EFB7FA2DC2297D0031A0E1 /* CacheRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1EFB7F92DC2297D0031A0E1 /* CacheRepository.swift */; };
@@ -113,7 +111,6 @@
 		F18EAF7E2DD3CDD30057DCAF /* DownloadProgressManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadProgressManager.swift; sourceTree = "<group>"; };
 		F1C671AB2DE9072D00AC2CA6 /* VoiceOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceOverlay.swift; sourceTree = "<group>"; };
 		F1C671AD2DE9134000AC2CA6 /* SpeechRecognition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechRecognition.swift; sourceTree = "<group>"; };
-		F1E7F9152DE0DA5F00E27582 /* EspeakNGService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EspeakNGService.swift; sourceTree = "<group>"; };
 		F1EFB7BA2DBBB8D00031A0E1 /* lexicon.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = lexicon.json; sourceTree = "<group>"; };
 		F1EFB7F72DC2261C0031A0E1 /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
 		F1EFB7F92DC2297D0031A0E1 /* CacheRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheRepository.swift; sourceTree = "<group>"; };
@@ -129,7 +126,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				F1414DF12E0AAE2A00C0DE21 /* onnxruntime-genai.xcframework in Frameworks */,
-				E4B44B272E0A8C6F0093A371 /* libespeak-ng in Frameworks */,
 				62E409950B02FE76B8027FF3 /* Pods_NimbleEdgeAI_Assistant.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -208,7 +204,6 @@
 			isa = PBXGroup;
 			children = (
 				E4F44C062DF20C16002272F2 /* DeviceIdentification.swift */,
-				F1E7F9152DE0DA5F00E27582 /* EspeakNGService.swift */,
 				F182E22E2E1E6F9200C03930 /* Extensions.swift */,
 				F182E2302E1E70FC00C03930 /* AtomicInteger.swift */,
 				F13F5E9C2DBB680C005B44F0 /* ContinousAudioPlayer.swift */,
@@ -408,7 +403,6 @@
 			);
 			mainGroup = F1713F272D1024220037358A;
 			packageReferences = (
-				F1E7F9102DE0D97000E27582 /* XCRemoteSwiftPackageReference "espeak-ng-spm" */,
 			);
 			productRefGroup = F1713F312D1024220037358A /* Products */;
 			projectDirPath = "";
@@ -502,7 +496,6 @@
 				F13F5E9A2DBB66C3005B44F0 /* ChatRepository.swift in Sources */,
 				F182E22F2E1E6F9700C03930 /* Extensions.swift in Sources */,
 				F13F5EAB2DBB6983005B44F0 /* LLMManager.swift in Sources */,
-				F1E7F9162DE0DA6400E27582 /* EspeakNGService.swift in Sources */,
 				E4F44BF82DEB01E6002272F2 /* LoaderCell.swift in Sources */,
 				F18EAF7F2DD3CDD50057DCAF /* DownloadProgressManager.swift in Sources */,
 				F13F5EA02DBB68CE005B44F0 /* ChatMessage.swift in Sources */,
@@ -755,25 +748,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
-/* Begin XCRemoteSwiftPackageReference section */
-		F1E7F9102DE0D97000E27582 /* XCRemoteSwiftPackageReference "espeak-ng-spm" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/espeak-ng/espeak-ng-spm";
-			requirement = {
-				branch = master;
-				kind = branch;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		E4B44B262E0A8C6F0093A371 /* libespeak-ng */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = F1E7F9102DE0D97000E27582 /* XCRemoteSwiftPackageReference "espeak-ng-spm" */;
-			productName = "libespeak-ng";
-		};
-/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = F1713F282D1024220037358A /* Project object */;
 }
