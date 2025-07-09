@@ -1,4 +1,4 @@
-# DeliteAI Android Assistant
+# NimbleEdge Android AI Assistant
 
 [![Platform](https://img.shields.io/badge/platform-Android-green.svg)](https://www.android.com) [![Language](https://img.shields.io/badge/language-Kotlin-orange.svg)](https://kotlinlang.org) [![UI Toolkit](https://img.shields.io/badge/ui-Jetpack%20Compose-blue.svg)](https://developer.android.com/jetpack/compose)
 
@@ -20,7 +20,7 @@ _A modern, on-device chat application powered by DeliteAI's **NimbleNet** and bu
 
 ## App Overview
 
-**DeliteAI Android Assistant** is a reference implementation that demonstrates how to integrate AI/ML models using NimbleNet into a mobile application. The project focuses on simplicity, rapid iteration and a delightful user experience.
+The project focuses on simplicity, rapid iteration and a delightful user experience.
 
 ### Tech Stack
 
