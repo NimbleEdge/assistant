@@ -45,7 +45,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "dev.deliteai.assistant"
+        applicationId = "ai.nimbleedge.nimbleedge_chatbot"
         minSdk = 31
         targetSdk = 35
         versionCode = 5

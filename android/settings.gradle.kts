@@ -28,5 +28,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "DeliteAi AI"
+rootProject.name = "NimbleEdge AI"
 include(":app")
