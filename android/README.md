@@ -2,7 +2,7 @@
 
 [![Platform](https://img.shields.io/badge/platform-Android-green.svg)](https://www.android.com) [![Language](https://img.shields.io/badge/language-Kotlin-orange.svg)](https://kotlinlang.org) [![UI Toolkit](https://img.shields.io/badge/ui-Jetpack%20Compose-blue.svg)](https://developer.android.com/jetpack/compose)
 
-_A modern, on-device chat application powered by DeliteAI's **NimbleNet** and built entirely with Jetpack Compose._
+_A modern, fully on-device conversational AI assistant Android app powered by DeliteAI and built entirely with Jetpack Compose._
 
 ---
 
