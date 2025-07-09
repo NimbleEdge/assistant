@@ -4,8 +4,6 @@
 
 _A modern, on-device chat application powered by DeliteAI's **NimbleNet** and built entirely with Jetpack Compose._
 
-> Talk, type and create – all without leaving your device.
-
 ---
 
 ## Table of Contents
@@ -26,12 +24,11 @@ The project focuses on simplicity, rapid iteration and a delightful user experie
 
 | Area             | Tech/Library                                                 |
 | ---------------- | ------------------------------------------------------------ |
-| Language         | Kotlin ✓                                                     |
+| Language         | Kotlin                                                       |
 | UI               | Jetpack Compose, Material 3                                  |
 | Navigation       | `androidx.navigation:navigation-compose`                     |
 | AI Runtime       | `dev.deliteai:nimblenet_ktx` & `dev.deliteai:nimblenet_core` |
-| Analytics        | Firebase Analytics / Remote Config / Crashlytics             |
-| Continual Review | Google Play In-App Review API                                |
+| Analytics        | Firebase Analytics / Crashlytics                             |
 
 ---
 
@@ -109,5 +106,3 @@ The standard Gradle test tasks are available:
 # On-device Compose tests
 ./gradlew :app:connectedDebugAndroidTest
 ```
-
-If you're interested in helping improve test coverage for UI components, ViewModels, or NimbleNet integration, please feel free to contribute!
