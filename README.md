@@ -35,7 +35,7 @@ alt="On-device Agentic AI platform"></a>
 - **Personal assistant** that's truly yours, not a proxy for business models
 
 ## Getting Started
-Currently available on [Android](https://play.google.com/store/apps/details?id=ai.nimbleedge.nimbleedge_chatbot_)
+Currently available on [Android](https://play.google.com/store/apps/details?id=ai.nimbleedge.nimbleedge_chatbot)
 
 iOS version coming soon!
 
