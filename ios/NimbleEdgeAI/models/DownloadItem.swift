@@ -11,45 +11,40 @@ struct DownloadItem {
     let downloadedFile: URL
     let totalSizeInBytes: Int64
     let displayMessage: String
-    
+
+    // MARK: - Default Constants
+
+    private static let documentDirectory: URL = {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+    }()
+
+    private static let baseDownloadFolder = documentDirectory.appendingPathComponent("nimbleSDK")
+
+    private static let kokoroFileName = "kokoro_small_unbatched1.2.0inferencePlan.txt"
+    private static let llamaFolder = "llama-31.0.0llm"
+    private static let llamaFileName = "embedding_quantized_model.onnx.data"
+    private static let llamaCompressedPartFile = "llama-31.0.0llm.zip.gz.part"
+
     static func getDefaultDownloadSize() -> Int64 {
-        var downloadSize: Int64 = 0
-        for file in getDefaultDownloadItem() {
-            downloadSize += file.totalSizeInBytes
-        }
-        return downloadSize
+        return getDefaultDownloadItem()
+            .reduce(0) { $0 + $1.totalSizeInBytes }
     }
-    
+
     static func getDefaultDownloadItem() -> [DownloadItem] {
         return [
             DownloadItem(
-                tempFileURL: FileManager.default
-                                     .urls(for: .documentDirectory, in: .userDomainMask)
-                                     .first!
-                                     .appendingPathComponent("nimbleSDK")
-                                     .appendingPathComponent("kokoro_small_unbatched1.2.0inferencePlan.txt.part"),
-                downloadedFile: FileManager.default
-                    .urls(for: .documentDirectory, in: .userDomainMask)
-                    .first!
-                    .appendingPathComponent("nimbleSDK")
-                    .appendingPathComponent("kokoro_small_unbatched1.2.0inferencePlan.txt"),
+                tempFileURL: baseDownloadFolder.appendingPathComponent("\(kokoroFileName).part"),
+                downloadedFile: baseDownloadFolder.appendingPathComponent(kokoroFileName),
                 totalSizeInBytes: 56_000_000,
-                displayMessage: "Downloading file 2..."
+                displayMessage: "Downloading file 1..."
             ),
             DownloadItem(
-                tempFileURL: FileManager.default
-                                     .urls(for: .documentDirectory, in: .userDomainMask)
-                                     .first!
-                                     .appendingPathComponent("nimbleSDK")
-                                     .appendingPathComponent("llama-31.0.0llm.zip.gz.part"),
-                downloadedFile: FileManager.default
-                    .urls(for: .documentDirectory, in: .userDomainMask)
-                    .first!
-                    .appendingPathComponent("nimbleSDK")
-                    .appendingPathComponent("llama-31.0.0llm")
-                    .appendingPathComponent("embedding_quantized_model.onnx.data"),
+                tempFileURL: baseDownloadFolder.appendingPathComponent(llamaCompressedPartFile),
+                downloadedFile: baseDownloadFolder
+                    .appendingPathComponent(llamaFolder)
+                    .appendingPathComponent(llamaFileName),
                 totalSizeInBytes: 800_000_000,
-                displayMessage: "Downloading file 3..."
+                displayMessage: "Downloading file 2..."
             )
         ]
     }
