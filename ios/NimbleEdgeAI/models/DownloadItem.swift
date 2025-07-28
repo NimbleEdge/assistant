@@ -31,6 +31,7 @@ struct DownloadItem {
     }
 
     static func getDefaultDownloadItem() -> [DownloadItem] {
+        return []
         return [
             DownloadItem(
                 tempFileURL: baseDownloadFolder.appendingPathComponent("\(kokoroFileName).part"),

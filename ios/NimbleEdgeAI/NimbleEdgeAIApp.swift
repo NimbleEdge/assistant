@@ -23,7 +23,8 @@ struct NimbleEdgeAIApp: App {
 
 
     init() {
-        FirebaseApp.configure()
+        //FirebaseApp.configure()
+        initializeNimbeNet()
     }
 
     var body: some Scene {
@@ -98,6 +99,7 @@ struct NimbleEdgeAIApp: App {
     }
 
     func initialise() {
+        setupEspeakCallbacks()
         if DeviceIdentification.getDeviceTier() == .three {
             showAppNotSupportedAlert = true
         } else {
@@ -110,6 +112,7 @@ struct NimbleEdgeAIApp: App {
 
 @discardableResult
 func initializeNimbeNet() -> Bool {
+    setupEspeakCallbacks()
 
     let compatibilityTag = DeviceIdentification.getDeviceTier() == .two ? NimbleNetSettings.lowerTierCompatibilityTag : NimbleNetSettings.compatibilityTag
 
@@ -125,8 +128,14 @@ func initializeNimbeNet() -> Bool {
 
 func waitForIsReady() {
     while !NimbleNetApi.isReady().status {
-        RunLoop.main.run(until: Date().addingTimeInterval(0.1))
+        RunLoop.main.run(until: Date().addingTimeInterval(1))
     }
+}
+
+func setupEspeakCallbacks() {
+    let espeakNGContext = EspeakNGService.shared
+    EspeakNGCallbacks.initializeEspeakCallback = espeakNGContext.set_espeak_initialize_callback
+    EspeakNGCallbacks.espeakTextToPhonemesCallback = espeakNGContext.set_espeak_text_to_phonemes_callback
 }
 
 class GlobalState {

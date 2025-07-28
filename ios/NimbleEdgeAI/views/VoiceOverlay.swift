@@ -356,7 +356,7 @@ struct AnimatedSpeechText: View {
     private var textToShow: String {
         switch true {
         case isUserSpeaking:
-            return "Listening..."
+            return "Listening...\nTap to send"
         case !currentText.isEmpty:
             return currentText
         case !persistedText.isEmpty:

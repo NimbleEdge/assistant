@@ -1,16 +1,19 @@
 # Uncomment the next line to define a global platform for your project
 # platform :ios, '9.0'
 source 'https://github.com/CocoaPods/Specs.git'
-source 'https://github.com/NimbleEdge/deliteAI-iOS-Podspecs'
+source 'git@github.com:NimbleEdge/NimbleSDK-Podspecs.git'
 target 'NimbleEdgeAI Assistant' do
   # Comment the next line if you don't want to use dynamic frameworks
   use_frameworks!
 
-   pod 'NimbleNetiOS', '0.1.0-dev-bb924a1-20250709-executorch'
+   pod 'NimbleNetiOS', '0.0.5-ios-espeak-rc1'
    pod 'lottie-ios'
    pod "MarkdownKit"
    pod 'Firebase/Core'
    pod 'FirebaseAnalytics'
    pod 'FirebaseCrashlytics'
+
+
+
 
 end
