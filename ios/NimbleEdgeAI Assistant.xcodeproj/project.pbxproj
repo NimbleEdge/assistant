@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		62E409950B02FE76B8027FF3 /* Pods_NimbleEdgeAI_Assistant.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0D99F1B32B3BCBF980783437 /* Pods_NimbleEdgeAI_Assistant.framework */; };
+		3CA92D0B1B01DD9CADB50BC8 /* Pods_NimbleEdgeAI_Assistant.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1E9E7BB25059570CFDCAC531 /* Pods_NimbleEdgeAI_Assistant.framework */; };
 		E418195A2DE4F365004499BB /* DownloadItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = E41819592DE4F35E004499BB /* DownloadItem.swift */; };
 		E418195C2DE78CDF004499BB /* ChatTableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E418195B2DE78C98004499BB /* ChatTableView.swift */; };
 		E418195F2DE8655B004499BB /* MessageCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = E418195E2DE86555004499BB /* MessageCell.swift */; };
@@ -31,7 +31,6 @@
 		F13F5EAD2DBB6E1D005B44F0 /* HistoryItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = F13F5EAC2DBB6E1D005B44F0 /* HistoryItem.swift */; };
 		F13F5EAF2DBB7311005B44F0 /* Chat.swift in Sources */ = {isa = PBXBuildFile; fileRef = F13F5EAE2DBB7310005B44F0 /* Chat.swift */; };
 		F13F5EB12DBB97EC005B44F0 /* ChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F13F5EB02DBB97EC005B44F0 /* ChatViewModel.swift */; };
-		F1414DF12E0AAE2A00C0DE21 /* onnxruntime-genai.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = F1414DF02E0AAE2A00C0DE21 /* onnxruntime-genai.xcframework */; };
 		F14A34CF2DD130CF00B40068 /* LoaderTextProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = F14A34CE2DD130CF00B40068 /* LoaderTextProvider.swift */; };
 		F1713F342D1024220037358A /* NimbleEdgeAIApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1713F332D1024220037358A /* NimbleEdgeAIApp.swift */; };
 		F1713F362D1024220037358A /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1713F352D1024220037358A /* ContentView.swift */; };
@@ -41,6 +40,9 @@
 		F1713F482D1026C60037358A /*  MainViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1713F472D1026C60037358A /*  MainViewModel.swift */; };
 		F1713FCE2D117BFD0037358A /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1713FCD2D117BFD0037358A /* ChatView.swift */; };
 		F17A1AFC2DA76EE4000BD022 /* TTSService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17A1AFB2DA76EE4000BD022 /* TTSService.swift */; };
+		F17C5B852E3336150071165F /* EspeakNGService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17C5B842E3336150071165F /* EspeakNGService.swift */; };
+		F17C5B8A2E3336850071165F /* libespeak-ng in Frameworks */ = {isa = PBXBuildFile; productRef = F17C5B892E3336850071165F /* libespeak-ng */; };
+		F17C67902E3338D10071165F /* espeak-ng-data in Resources */ = {isa = PBXBuildFile; fileRef = F17C678F2E3338D10071165F /* espeak-ng-data */; };
 		F182E22F2E1E6F9700C03930 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F182E22E2E1E6F9200C03930 /* Extensions.swift */; };
 		F182E2312E1E70FC00C03930 /* AtomicInteger.swift in Sources */ = {isa = PBXBuildFile; fileRef = F182E2302E1E70FC00C03930 /* AtomicInteger.swift */; };
 		F18EAF7F2DD3CDD50057DCAF /* DownloadProgressManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F18EAF7E2DD3CDD30057DCAF /* DownloadProgressManager.swift */; };
@@ -55,11 +57,9 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		00E03104F649B62CFF2E4F89 /* Pods-ChatAppNE.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ChatAppNE.debug.xcconfig"; path = "Target Support Files/Pods-ChatAppNE/Pods-ChatAppNE.debug.xcconfig"; sourceTree = "<group>"; };
-		0D99F1B32B3BCBF980783437 /* Pods_NimbleEdgeAI_Assistant.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_NimbleEdgeAI_Assistant.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		480BB27662A54F5E8EC25D0E /* Pods-NimbleEdgeAI Assistant.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-NimbleEdgeAI Assistant.release.xcconfig"; path = "Target Support Files/Pods-NimbleEdgeAI Assistant/Pods-NimbleEdgeAI Assistant.release.xcconfig"; sourceTree = "<group>"; };
-		492D3333723BDDB946D57C15 /* Pods-NimbleEdgeAI Assistant.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-NimbleEdgeAI Assistant.debug.xcconfig"; path = "Target Support Files/Pods-NimbleEdgeAI Assistant/Pods-NimbleEdgeAI Assistant.debug.xcconfig"; sourceTree = "<group>"; };
-		A7649074B4D8AD202FAFAF51 /* Pods-ChatAppNE.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ChatAppNE.release.xcconfig"; path = "Target Support Files/Pods-ChatAppNE/Pods-ChatAppNE.release.xcconfig"; sourceTree = "<group>"; };
+		1E9E7BB25059570CFDCAC531 /* Pods_NimbleEdgeAI_Assistant.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_NimbleEdgeAI_Assistant.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		4292964F80A942E8B0690AF2 /* Pods-NimbleEdgeAI Assistant.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-NimbleEdgeAI Assistant.debug.xcconfig"; path = "Target Support Files/Pods-NimbleEdgeAI Assistant/Pods-NimbleEdgeAI Assistant.debug.xcconfig"; sourceTree = "<group>"; };
+		DB0AE46584A8855ED029FE88 /* Pods-NimbleEdgeAI Assistant.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-NimbleEdgeAI Assistant.release.xcconfig"; path = "Target Support Files/Pods-NimbleEdgeAI Assistant/Pods-NimbleEdgeAI Assistant.release.xcconfig"; sourceTree = "<group>"; };
 		E41819592DE4F35E004499BB /* DownloadItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadItem.swift; sourceTree = "<group>"; };
 		E418195B2DE78C98004499BB /* ChatTableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatTableView.swift; sourceTree = "<group>"; };
 		E418195E2DE86555004499BB /* MessageCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageCell.swift; sourceTree = "<group>"; };
@@ -95,6 +95,8 @@
 		F1713F472D1026C60037358A /*  MainViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = " MainViewModel.swift"; sourceTree = "<group>"; };
 		F1713FCD2D117BFD0037358A /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
 		F17A1AFB2DA76EE4000BD022 /* TTSService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TTSService.swift; sourceTree = "<group>"; };
+		F17C5B842E3336150071165F /* EspeakNGService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EspeakNGService.swift; sourceTree = "<group>"; };
+		F17C678F2E3338D10071165F /* espeak-ng-data */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "espeak-ng-data"; sourceTree = "<group>"; };
 		F182E22E2E1E6F9200C03930 /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
 		F182E2302E1E70FC00C03930 /* AtomicInteger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtomicInteger.swift; sourceTree = "<group>"; };
 		F18EAF7E2DD3CDD30057DCAF /* DownloadProgressManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadProgressManager.swift; sourceTree = "<group>"; };
@@ -113,8 +115,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F1414DF12E0AAE2A00C0DE21 /* onnxruntime-genai.xcframework in Frameworks */,
-				62E409950B02FE76B8027FF3 /* Pods_NimbleEdgeAI_Assistant.framework in Frameworks */,
+				F17C5B8A2E3336850071165F /* libespeak-ng in Frameworks */,
+				3CA92D0B1B01DD9CADB50BC8 /* Pods_NimbleEdgeAI_Assistant.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -124,10 +126,8 @@
 		C88B6058D5947DD282EBFAF9 /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				00E03104F649B62CFF2E4F89 /* Pods-ChatAppNE.debug.xcconfig */,
-				A7649074B4D8AD202FAFAF51 /* Pods-ChatAppNE.release.xcconfig */,
-				492D3333723BDDB946D57C15 /* Pods-NimbleEdgeAI Assistant.debug.xcconfig */,
-				480BB27662A54F5E8EC25D0E /* Pods-NimbleEdgeAI Assistant.release.xcconfig */,
+				4292964F80A942E8B0690AF2 /* Pods-NimbleEdgeAI Assistant.debug.xcconfig */,
+				DB0AE46584A8855ED029FE88 /* Pods-NimbleEdgeAI Assistant.release.xcconfig */,
 			);
 			path = Pods;
 			sourceTree = "<group>";
@@ -136,7 +136,7 @@
 			isa = PBXGroup;
 			children = (
 				F1414DF02E0AAE2A00C0DE21 /* onnxruntime-genai.xcframework */,
-				0D99F1B32B3BCBF980783437 /* Pods_NimbleEdgeAI_Assistant.framework */,
+				1E9E7BB25059570CFDCAC531 /* Pods_NimbleEdgeAI_Assistant.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -250,6 +250,7 @@
 		F1713F272D1024220037358A = {
 			isa = PBXGroup;
 			children = (
+				F17C678F2E3338D10071165F /* espeak-ng-data */,
 				E457A8B62E00129E006240CC /* GoogleService-Info.plist */,
 				F1713F322D1024220037358A /* NimbleEdgeAI */,
 				F1713F312D1024220037358A /* Products */,
@@ -271,6 +272,7 @@
 			children = (
 				E457A8BE2E00A136006240CC /* Info.plist */,
 				F1713F332D1024220037358A /* NimbleEdgeAIApp.swift */,
+				F17C5B842E3336150071165F /* EspeakNGService.swift */,
 				F13F5E9B2DBB67F8005B44F0 /* Utils */,
 				F17A1B022DA78F23000BD022 /* views */,
 				F13F5E9E2DBB68A3005B44F0 /* models */,
@@ -345,11 +347,11 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = F1713F3E2D1024240037358A /* Build configuration list for PBXNativeTarget "NimbleEdgeAI Assistant" */;
 			buildPhases = (
-				CEB423C1B16D2C28660B037B /* [CP] Check Pods Manifest.lock */,
+				ACB65499A38FA76A91CB58E1 /* [CP] Check Pods Manifest.lock */,
 				F1713F2C2D1024220037358A /* Sources */,
 				F1713F2D2D1024220037358A /* Frameworks */,
 				F1713F2E2D1024220037358A /* Resources */,
-				7042F3593CB9D13477FBCA91 /* [CP] Embed Pods Frameworks */,
+				ED123CA9C3E58CCBB104DFA5 /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -384,6 +386,9 @@
 				Base,
 			);
 			mainGroup = F1713F272D1024220037358A;
+			packageReferences = (
+				F17C5B862E3336850071165F /* XCRemoteSwiftPackageReference "espeak-ng-spm" */,
+			);
 			productRefGroup = F1713F312D1024220037358A /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -398,6 +403,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F17C67902E3338D10071165F /* espeak-ng-data in Resources */,
 				E4F44C0C2DF74A54002272F2 /* filler_voice_pcms.json in Resources */,
 				F1EFB7C02DBF90A40031A0E1 /* lexicon.json in Resources */,
 				F1EFB8042DC4C98B0031A0E1 /* wave_teal.json in Resources */,
@@ -411,28 +417,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		7042F3593CB9D13477FBCA91 /* [CP] Embed Pods Frameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-NimbleEdgeAI Assistant/Pods-NimbleEdgeAI Assistant-frameworks-${CONFIGURATION}-input-files.xcfilelist",
-			);
-			inputPaths = (
-			);
-			name = "[CP] Embed Pods Frameworks";
-			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-NimbleEdgeAI Assistant/Pods-NimbleEdgeAI Assistant-frameworks-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-NimbleEdgeAI Assistant/Pods-NimbleEdgeAI Assistant-frameworks.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
-		CEB423C1B16D2C28660B037B /* [CP] Check Pods Manifest.lock */ = {
+		ACB65499A38FA76A91CB58E1 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -452,6 +437,27 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+		ED123CA9C3E58CCBB104DFA5 /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-NimbleEdgeAI Assistant/Pods-NimbleEdgeAI Assistant-frameworks-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			inputPaths = (
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-NimbleEdgeAI Assistant/Pods-NimbleEdgeAI Assistant-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-NimbleEdgeAI Assistant/Pods-NimbleEdgeAI Assistant-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
@@ -475,6 +481,7 @@
 				F13F5EA02DBB68CE005B44F0 /* ChatMessage.swift in Sources */,
 				F1EFB7F82DC2261C0031A0E1 /* HistoryView.swift in Sources */,
 				F1EFB8002DC4B2420031A0E1 /* HomeView.swift in Sources */,
+				F17C5B852E3336150071165F /* EspeakNGService.swift in Sources */,
 				F1C671AC2DE9073000AC2CA6 /* VoiceOverlay.swift in Sources */,
 				F182E2312E1E70FC00C03930 /* AtomicInteger.swift in Sources */,
 				F14A34CF2DD130CF00B40068 /* LoaderTextProvider.swift in Sources */,
@@ -626,12 +633,12 @@
 		};
 		F1713F3F2D1024240037358A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 492D3333723BDDB946D57C15 /* Pods-NimbleEdgeAI Assistant.debug.xcconfig */;
+			baseConfigurationReference = 4292964F80A942E8B0690AF2 /* Pods-NimbleEdgeAI Assistant.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				DEVELOPMENT_ASSET_PATHS = "\"NimbleEdgeAI/Preview Content\"";
 				DEVELOPMENT_TEAM = 74SCV562N5;
 				ENABLE_PREVIEWS = YES;
@@ -653,7 +660,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = ai.nimbleedge.assistant;
 				PRODUCT_NAME = "NimbleEdge AI";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -664,12 +671,12 @@
 		};
 		F1713F402D1024240037358A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 480BB27662A54F5E8EC25D0E /* Pods-NimbleEdgeAI Assistant.release.xcconfig */;
+			baseConfigurationReference = DB0AE46584A8855ED029FE88 /* Pods-NimbleEdgeAI Assistant.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				DEVELOPMENT_ASSET_PATHS = "\"NimbleEdgeAI/Preview Content\"";
 				DEVELOPMENT_TEAM = 74SCV562N5;
 				ENABLE_PREVIEWS = YES;
@@ -691,7 +698,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = ai.nimbleedge.assistant;
 				PRODUCT_NAME = "NimbleEdge AI";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -722,6 +729,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		F17C5B862E3336850071165F /* XCRemoteSwiftPackageReference "espeak-ng-spm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/espeak-ng/espeak-ng-spm";
+			requirement = {
+				branch = master;
+				kind = branch;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		F17C5B892E3336850071165F /* libespeak-ng */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F17C5B862E3336850071165F /* XCRemoteSwiftPackageReference "espeak-ng-spm" */;
+			productName = "libespeak-ng";
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = F1713F282D1024220037358A /* Project object */;
 }
