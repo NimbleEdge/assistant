@@ -14,6 +14,7 @@ class AtomicInteger {
         self.value = value
     }
     
+    @discardableResult
     func increment() -> Int {
         lock.lock()
         defer { lock.unlock() }
@@ -30,5 +31,11 @@ class AtomicInteger {
         lock.lock()
         defer { lock.unlock() }
         self.value = value
+    }
+    
+    func getValue() -> Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return value
     }
 }

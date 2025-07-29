@@ -10,11 +10,9 @@ import Combine
 
 class ContinuousAudioPlayer {
     private let sampleRate: Int
-    private let queue = DispatchQueue(label: "com.nimbleedge.audioPlayer", qos: .userInitiated)
     private let lock = NSLock()
     private var audioQueue = [Int: [Any]]()
-    private var expectedQueue = 1 //TODO: Make this automic
-    var expectedFillerQueue = 1
+    private var expectedQueue = AtomicInteger(value: 1)
     private var currentAudioPlayer: AVAudioPlayer?
     private var playbackLoopTask: Task<Void, Never>?
     
@@ -60,24 +58,24 @@ class ContinuousAudioPlayer {
 
             // Clear audio queue
             audioQueue.removeAll()
-            expectedQueue = 1
+            expectedQueue.set(1)
            // isPlayingOrMightPlaySoonSubject.send(false)
         }
     }
     
-    //TODO: Make is dynamic, I should always run
     private func continuousPlaybackLoop() async {
         
         //TODO: NEED A WAY TO STOP THIS
         while true {
-            let nextSegment = audioQueue[expectedQueue]
+            let nextSegment = audioQueue[expectedQueue.getValue()]
             print("expectedQueue: \(expectedQueue)")
             
             if let nextSegment = nextSegment {
-                lock.lock()
-                _ = audioQueue.removeValue(forKey: expectedQueue)
-                expectedQueue += 1
-                lock.unlock()
+                
+                lock.withLock({
+                    _ = audioQueue.removeValue(forKey: expectedQueue.getValue())
+                    expectedQueue.increment()
+                })
 
                 //isPlayingOrMightPlaySoonSubject.send(true)
                 
@@ -95,64 +93,6 @@ class ContinuousAudioPlayer {
     
     private var audioEngine: AVAudioEngine?
     private var playerNode: AVAudioPlayerNode?
-    
-//    private func playAudioSegment(pcmData: [Float], sampleRate: Double = 22050.0) async {
-//        print("playAudioSegment called")
-//        playerNode?.stop()
-//        audioEngine?.stop()
-//
-//        let engine = AVAudioEngine()
-//        let player = AVAudioPlayerNode()
-//        engine.attach(player)
-//
-//        let format = AVAudioFormat(
-//            commonFormat: .pcmFormatFloat32,
-//            sampleRate: sampleRate,
-//            channels: 1,
-//            interleaved: false
-//        )!
-//
-//        engine.connect(player, to: engine.mainMixerNode, format: format)
-//
-//        do {
-//            try AVAudioSession.sharedInstance().setCategory(.playback)
-//            try AVAudioSession.sharedInstance().setActive(true)
-//            try engine.start()
-//
-//            let frameCount = AVAudioFrameCount(pcmData.count)
-//            guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount) else {
-//                print("Failed to create PCM buffer.")
-//                return
-//            }
-//
-//            buffer.frameLength = frameCount
-//            let floatChannel = buffer.floatChannelData![0]
-//
-//            for i in 0..<pcmData.count {
-//                let intVal = Float(pcmData[i]) / Float(Int16.max)
-//                floatChannel[i] = intVal
-//            }
-//
-//            audioEngine = engine
-//            playerNode = player
-//
-//            player.scheduleBuffer(buffer, at: nil, options: []) {
-//                print("Playback finished")
-//            }
-//
-//            player.play()
-//
-//            while player.isPlaying && !Task.isCancelled {
-//                try? await Task.sleep(nanoseconds: 50_000_000)
-//            }
-//
-//            player.stop()
-//            engine.stop()
-//
-//        } catch {
-//            print("Error playing PCM buffer: \(error)")
-//        }
-//    }
     
     private func playAudioSegment(pcmData: [Int32]) async {
         var pcmBuffer = Data()
@@ -299,4 +239,13 @@ class ContinuousAudioPlayer {
     }
     
 
+}
+
+
+extension NSLock {
+    func withLock<T>(_ body: () throws -> T) rethrows -> T {
+        lock()
+        defer { unlock() }
+        return try body()
+    }
 }
