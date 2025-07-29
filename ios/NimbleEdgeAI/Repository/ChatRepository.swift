@@ -19,6 +19,7 @@ class ChatRepository {
     let continuousAudioPlayer = ContinuousAudioPlayer()
     let indexToQueueNext = AtomicInteger(value: 1)
     var isFirstAudioGeneratedFlag = false
+    let semaphore = DispatchSemaphore(value: 3)
     
     func triggerTTS(text:String,queueNumber:Int) {
         let cleanText = cleanText(text)
@@ -71,10 +72,8 @@ class ChatRepository {
         isLLMActive = true
         indexToQueueNext.set(1)
         isFirstAudioGeneratedFlag = false
-        let semaphore = DispatchSemaphore(value: 3)
         continuousAudioPlayer.cancelPlaybackAndResetQueue()
         var ttsQueue = ""
-        var finalqueue = ""
         Task(priority: .low) {
             do {
                 try await llmService.feedInput(input: textInput)
@@ -84,68 +83,92 @@ class ChatRepository {
                 while true {
                     let outputMap = try await llmService.getNextMap()
                     
-                    guard let tensor = outputMap["str"],
-                          let currentOutputString = tensor.data as? String,
-                          !currentOutputString.isEmpty
-                    else {
-                        continue
-                    }
-                    
-                    onOutputString(currentOutputString)
-                    print("TTS Logs --->>> currentOutputString: \(currentOutputString)")
-                    
-                    finalqueue += currentOutputString
-                    ttsQueue += currentOutputString
-                    print("TTS Logs --->>> ttsQueue: \(ttsQueue)")
-
-                    
-                    //TODO: Make this easy to understand
-                    if ttsQueue.count < minCharLenForTTS && outputMap["finished"] == nil {
-                        continue
-                    }
-                    
-                    let cutoffIndex = getCutOffIndexForTTSQueue(in: ttsQueue)
-                    
-                    if outputMap["finished"] == nil && cutoffIndex == nil {
-                        continue
-                    }
-                    
-                    var ttsCandidate = ttsQueue.slice(from: 0, to: cutoffIndex!)
-                    print("TTS Logs --->>> ttsCandidate: \(ttsCandidate)")
-                    ttsQueue.removeChunk(from: 0, to: cutoffIndex!)
-                    print("TTS Logs --->>> ttsQueue removeedChunk: \(ttsQueue)")
-                    
-                    if outputMap["finished"] != nil && !ttsQueue.isEmpty {
-                        //TODO: WE CAN MAKE SIMPLIFY THIS
-                        ttsCandidate.append(contentsOf: ttsQueue)
-                        ttsQueue = ""
-                    }
-                    
-                    if !isFirstAudioGeneratedFlag {
-                        print("🎙️ First chunk to TTS: \(ttsCandidate)")
-                        triggerTTS(text: ttsCandidate, queueNumber: indexToQueueNext.getAndIncrement())
-                        isFirstAudioGeneratedFlag = true
-                        await onFirstAudioGenerated()
-                        
-                    } else {
-                        semaphore.wait()
-                        Task(priority: .userInitiated) {
-                            defer { semaphore.signal() }
-                            triggerTTS(text: ttsCandidate, queueNumber: indexToQueueNext.getAndIncrement())
-                        }
-                    }
+                    let str = outputMap["str"]?.data as? String
                     
                     if outputMap["finished"] != nil {
-                        await onFinished()
-                        isLLMActive = false
+                        await handleFinish(ttsQueue: ttsQueue, latestOutput: str, onFirstAudioGenerated: onFirstAudioGenerated, onFinished: onFinished)
+                        onOutputString(str!)
                         break
                     }
                     
-                    try? await Task.sleep(nanoseconds: 200_000_000) // 0.2s
+                    
+                    if str == nil || str!.isEmpty {
+                        continue
+                    }
+
+                    onOutputString(str!)
+
+                    ttsQueue += str!
+
+                    
+                    //TODO: Make this easy to understand
+                    if ttsQueue.count < minCharLenForTTS  {
+                        continue
+                    }
+                    
+                    // Break off ONE chunk and play it now
+                    let (newQueue, ttsCandidate) = breakChunks(ttsQueue1: ttsQueue)
+                    ttsQueue = newQueue
+                    print("TTS Logs --->>> ttsCandidate: \(ttsCandidate), ttsQueue removedChunk: \(ttsQueue), ttsQueue length: \(ttsQueue.count)")
+
+                    // Send the candidate (not the remainder) to TTS
+                    await breakTTSCandidates(ttsQueue1: ttsCandidate, onFirstAudioGenerated: onFirstAudioGenerated)
+                                    
+                    try? await Task.sleep(nanoseconds: 50_000_000) // 0.05s
                 }
             } catch {
                 await onError(error)
             }
+        }
+    }
+    
+    func breakChunks(ttsQueue1: String) -> (ttsQueue: String, ttsCandidate: String) {
+        print("old ttsQueue: \(ttsQueue1.count)")
+        var ttsQueue = ttsQueue1
+        let cutoffIndex = getCutOffIndexForTTSQueue(in: ttsQueue)
+        let ttsCandidate = ttsQueue.slice(from: 0, to: cutoffIndex)
+        ttsQueue.removeChunk(from: 0, to: cutoffIndex)
+        print("updated ttsQueue: \(ttsQueue.count)")
+        return (ttsQueue, ttsCandidate)
+    }
+    
+    func handleFinish(ttsQueue: String, latestOutput: String?, onFirstAudioGenerated: @escaping () async -> Void, onFinished: @escaping () async -> Void,) async {
+        var ttsQueue: String = ttsQueue
+        if let latestOutput = latestOutput {
+            ttsQueue.append(contentsOf: latestOutput)
+        }
+        print("Last Candidate Called: \(ttsQueue.count)")
+        
+        await breakTTSCandidates(ttsQueue1: ttsQueue, onFirstAudioGenerated: onFirstAudioGenerated)
+        
+        await onFinished()
+        isLLMActive = false
+    }
+    
+    func handleTTSCandidate(ttsCandidate: String, onFirstAudioGenerated: @escaping () async -> Void) async {
+        print("ttsCandidate size: \(ttsCandidate.count)")
+        if !isFirstAudioGeneratedFlag {
+            print("🎙️ First chunk to TTS: \(ttsCandidate)")
+            triggerTTS(text: ttsCandidate, queueNumber: indexToQueueNext.getAndIncrement())
+            isFirstAudioGeneratedFlag = true
+            await onFirstAudioGenerated()
+            
+        } else {
+            semaphore.wait()
+            Task(priority: .userInitiated) {
+                defer { semaphore.signal() }
+                triggerTTS(text: ttsCandidate, queueNumber: indexToQueueNext.getAndIncrement())
+            }
+        }
+
+    }
+    
+    func breakTTSCandidates(ttsQueue1: String, onFirstAudioGenerated: @escaping () async -> Void) async {
+        var ttsQueue = ttsQueue1
+        while !ttsQueue.isEmpty {
+            var chunksOutput = breakChunks(ttsQueue1: ttsQueue)
+            ttsQueue = chunksOutput.ttsQueue
+            await handleTTSCandidate(ttsCandidate: chunksOutput.ttsCandidate, onFirstAudioGenerated: onFirstAudioGenerated)
         }
     }
     
@@ -168,7 +191,9 @@ class ChatRepository {
         while !isFirstAudioGeneratedFlag {
             print("TTS Logs --->>> triggerFillerAudioTask currentDelay: \(currentDelay)")
             if currentDelay >= maxDelay {
-                continuousAudioPlayer.queueAudio(queueNumber: indexToQueueNext.getAndIncrement(), pcm: GlobalState.fillerAudios.randomElement() ?? [])
+                if indexToQueueNext.getValue() == 2 {
+                    continuousAudioPlayer.queueAudio(queueNumber: indexToQueueNext.getAndIncrement(), pcm: GlobalState.fillerAudios.randomElement() ?? [])
+                }
                 break
             }
             try? await Task.sleep(nanoseconds: 1_000_000_000) // 1s
@@ -176,10 +201,11 @@ class ChatRepository {
         }
     }
     
-    func getCutOffIndexForTTSQueue(in input: String) -> Int? {
+    func getCutOffIndexForTTSQueue(in input: String) -> Int {
+        print("getCutOffIndexForTTSQueue input -> \(input), count: \(input.count)")
         let maxCharLen = 200
         let limit = min(input.count, maxCharLen)
-        let punctuationSet: Set<Character> = [",", "!", "?", ":", ";", "-", "—", "(", ")", "\"", "…"]
+        let punctuationSet: Set<Character> = [",", "!", "?", ";"]
 
         let characters = Array(input.prefix(limit))
 
@@ -200,7 +226,7 @@ class ChatRepository {
             }
         }
 
-        return nil
+        return (limit - 1)
     }
   
     func stopLLM() {
