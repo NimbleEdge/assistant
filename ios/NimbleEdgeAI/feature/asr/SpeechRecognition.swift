@@ -14,7 +14,7 @@ class SpeechRecognizer: NSObject, ObservableObject {
     @Published var isRecording = false
     @Published var isAuthorized = false
     @Published var errorMessage = ""
-    @Published var fullTranscript = ""
+    var onRecordingStoped: (() -> Void)? = nil
     private var speechRecognizer: SFSpeechRecognizer?
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
@@ -24,7 +24,6 @@ class SpeechRecognizer: NSObject, ObservableObject {
         super.init()
 
         speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
-
 
         guard let speechRecognizer = speechRecognizer else {
             errorMessage = "Speech recognizer not available"
@@ -94,11 +93,10 @@ class SpeechRecognizer: NSObject, ObservableObject {
             if let result = result {
                 DispatchQueue.main.async {
                     self?.transcript = result.bestTranscription.formattedString
-                    self?.fullTranscript += result.bestTranscription.formattedString + " "
                 }
                 isFinal = result.isFinal
             }
-
+            
             if error != nil || isFinal {
                 DispatchQueue.main.async {
                     self?.audioEngine.stop()
@@ -116,8 +114,31 @@ class SpeechRecognizer: NSObject, ObservableObject {
 
 
         let recordingFormat = inputNode.outputFormat(forBus: 0)
+        var lastSpokenTime = Date()
+
         inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { buffer, _ in
             self.recognitionRequest?.append(buffer)
+            
+            // Volume analysis
+            let channelData = buffer.floatChannelData?[0]
+            let channelDataValueArray = stride(from: 0,
+                                               to: Int(buffer.frameLength),
+                                               by: buffer.stride).map { channelData?[$0] ?? 0 }
+
+            let rms = sqrt(channelDataValueArray.map { $0 * $0 }.reduce(0, +) / Float(buffer.frameLength))
+            let avgPower = 20 * log10(rms)
+
+            if avgPower > -45 {
+                lastSpokenTime = Date()
+            } else {
+                if Date().timeIntervalSince(lastSpokenTime) > 2.0 {
+                    DispatchQueue.main.async {
+                        self.stopRecording()
+                        self.onRecordingStoped?()
+                    }
+                }
+            }
+
         }
 
         audioEngine.prepare()
