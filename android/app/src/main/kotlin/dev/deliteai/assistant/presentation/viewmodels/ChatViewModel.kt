@@ -6,8 +6,14 @@
 
 package dev.deliteai.assistant.presentation.viewmodels
 
+import android.app.Application
+import android.util.Log
+import android.widget.Toast
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
 import dev.deliteai.NimbleNet
-import dev.deliteai.datamodels.NimbleNetTensor
 import dev.deliteai.assistant.domain.features.asr.ASRService
 import dev.deliteai.assistant.domain.models.Chat
 import dev.deliteai.assistant.domain.models.ChatMessage
@@ -19,13 +25,7 @@ import dev.deliteai.assistant.utils.ExceptionLogger
 import dev.deliteai.assistant.utils.LoaderTextProvider
 import dev.deliteai.assistant.utils.TAG
 import dev.deliteai.assistant.utils.copyTextToClipboard
-import android.app.Application
-import android.util.Log
-import android.widget.Toast
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.viewModelScope
+import dev.deliteai.datamodels.NimbleNetTensor
 import dev.deliteai.impl.common.DATATYPE
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -47,6 +47,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.util.Date
 import java.util.UUID
+import kotlin.math.min
 
 class ChatViewModel(private val application: Application) : AndroidViewModel(application) {
     private val chatRepository = ChatRepository()
@@ -81,6 +82,9 @@ class ChatViewModel(private val application: Application) : AndroidViewModel(app
 
     private var waitMessageRefreshJob: Job? = null
     var topBarTitle = mutableStateOf<String?>(null)
+
+    var thinkingStream = mutableStateOf<String>("")
+    var masterOutputHolder = ""
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
@@ -244,6 +248,8 @@ class ChatViewModel(private val application: Application) : AndroidViewModel(app
     }
 
     fun getLLMTextFromTextInput(textInput: String) {
+        thinkingStream.value = ""
+
         cancelLLMAndClearAudioQueue()
         if (!isFirstMessageSent.value) {
             isFirstMessageSent.value = true
@@ -303,6 +309,36 @@ class ChatViewModel(private val application: Application) : AndroidViewModel(app
         saveChatToRepository()
     }
 
+    private  val THINK_SENTINEL = "/think"
+
+    // Fast non-overlapping counter
+    private fun String.countOccurrences(needle: String): Int {
+        if (needle.isEmpty()) return 0
+        var count = 0
+        var from = 0
+        while (true) {
+            val i = indexOf(needle, startIndex = from)
+            if (i == -1) break
+            count++
+            from = i + needle.length
+        }
+        return count
+    }
+
+    private fun cleanForUi(s: String): String {
+        return s.replace("<think>", "")
+            .replace("</think>", "")
+            .replace("<tool_call>", "-> EXECUTING TOOL CALL")
+            .replace("</tool_call>", "")
+            .replace("<|im_end|>", "")
+            // optional: hide the sentinel from the UI as well
+            .replace(THINK_SENTINEL, "")
+    }
+
+    private var thinkSeen = 0
+    private var cutAfterThirdThink = -1
+
+
     private fun handleLLMResult(
         result: ChatRepository.GenerateResponseJobStatus,
         isAudioExpected: Boolean
@@ -314,20 +350,43 @@ class ChatViewModel(private val application: Application) : AndroidViewModel(app
             }
 
             is ChatRepository.GenerateResponseJobStatus.Finished -> {
-                val finalOutput = outputStream.value.toString()
-                addNewMessageToChatHistory(finalOutput, false)
-                outputStream.value = null
-                isInterruptButtonVisible.value = false
+//                val finalOutput = outputStream.value.toString()
+//                addNewMessageToChatHistory(finalOutput, false)
+//                outputStream.value = null
+//                isInterruptButtonVisible.value = false
             }
 
             is ChatRepository.GenerateResponseJobStatus.NextItem -> {
-                outputStream.value = (outputStream.value ?: "") + result.outputText
-                if (!isAudioExpected && result.outputText.contains(Regex("[A-Za-z0-9]"))) {
-                    currentMessageLoading.value = false
-                    if (waitMessageRefreshJob != null) {
-                        waitMessageRefreshJob!!.cancel()
+                val newChunk = result.outputText
+
+                masterOutputHolder += newChunk
+
+                val totalThinks = masterOutputHolder.countOccurrences(THINK_SENTINEL)
+
+                if (totalThinks > thinkSeen) {
+                    if (thinkSeen < 3 && totalThinks >= 3 && cutAfterThirdThink < 0) {
+                        val thirdStart = masterOutputHolder.lastIndexOf(THINK_SENTINEL)
+                        if (thirdStart != -1) {
+                            cutAfterThirdThink = thirdStart + THINK_SENTINEL.length
+                        }
                     }
+                    thinkSeen = totalThinks
+                    thinkingStream.value = "" // reset the "thinking" buffer at sentinel boundaries
                 }
+
+                if (cutAfterThirdThink >= 0) {
+                    val visible = masterOutputHolder.substring(cutAfterThirdThink)
+                    val cleaned = cleanForUi(visible)
+                    outputStream.value = cleaned.substring(0,min(cleaned.length, 147))
+                } else {
+                    thinkingStream.value = cleanForUi(thinkingStream.value + newChunk)
+                }
+
+                if (!isAudioExpected && newChunk.contains(Regex("[A-Za-z0-9]"))) {
+                    currentMessageLoading.value = false
+                    waitMessageRefreshJob?.cancel()
+                }
+
             }
         }
     }
