@@ -77,8 +77,9 @@ suspend fun initializeNimbleNetAndWaitForIsReady(application: Application, ct: S
         host = BuildConfig.NIMBLENET_CONFIG_HOST,
         deviceId = getInternalDeviceId(application),
         clientSecret = BuildConfig.NIMBLENET_CONFIG_CLIENT_SECRET,
-        debug = false,
-        compatibilityTag = ct,
+        debug = true,
+        online = true,
+        compatibilityTag = "QWEN_ONNX",
         libraryVariant = NIMBLENET_VARIANTS.STATIC,
         showDownloadProgress = true
     )
@@ -93,17 +94,21 @@ suspend fun initializeNimbleNetAndWaitForIsReady(application: Application, ct: S
 
 //used only during the app init
 private suspend fun passLexiconToTheWorkflowScript(context: Context) {
-    val resString = context.assets.open("lexicon.json").bufferedReader().use { it.readText() }
-    val lexiconArray = JSONObject(resString)
+    val generationConfig = JSONObject(context.assets.open("config.json").bufferedReader().use { it.readText() })
+    val tokenizerConfig = JSONObject(context.assets.open("tokenizer.json").bufferedReader().use { it.readText() })
+
     val res = NimbleNet.runMethod(
-        "init",
+        "init_generation_mixin",
         inputs = hashMapOf(
-            "lexicon" to NimbleNetTensor(
-                shape = null, data = lexiconArray, datatype = DATATYPE.JSON
+            "tokenizer_config" to NimbleNetTensor(
+                shape = null, data = tokenizerConfig, datatype = DATATYPE.JSON
+            ),
+            "generation_config" to NimbleNetTensor(
+                shape = null, data = generationConfig, datatype = DATATYPE.JSON
             )
         )
     )
-    check(res.status) { "NimbleNet.runMethod('init') failed with status: ${res.status}" }
+    check(res.status) { "NimbleNet.runMethod('init_generation_mixin') failed with status: ${res.status}" }
 }
 
 fun MutableList<String>.mergeChunks(): MutableList<String> {

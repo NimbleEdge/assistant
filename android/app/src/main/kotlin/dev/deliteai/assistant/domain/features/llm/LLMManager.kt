@@ -9,25 +9,21 @@ package dev.deliteai.assistant.domain.features.llm
 import dev.deliteai.NimbleNet
 import dev.deliteai.datamodels.NimbleNetTensor
 import dev.deliteai.impl.common.DATATYPE
+import org.json.JSONObject
 
 object LLMManager {
     suspend fun feedInput(input: String, isVoiceInitiated: Boolean) {
         val res = NimbleNet.runMethod(
-            "prompt_llm",
+            "prompt_for_tool_calling",
             inputs = hashMapOf(
-                "query" to NimbleNetTensor(input, DATATYPE.STRING, null),
-                "is_voice_initiated" to NimbleNetTensor(
-                    if (isVoiceInitiated) 1 else 0,
-                    DATATYPE.INT32,
-                    null
-                )
+                "prompt" to NimbleNetTensor(input, DATATYPE.STRING, null),
             ),
         )
-        check(res.status) { "NimbleNet.runMethod('prompt_llm') failed with status: ${res.status}" }
+        check(res.status) { "NimbleNet.runMethod('prompt_for_tool_calling') failed with status: ${res.status}" }
     }
 
     suspend fun getNextMap(): Map<String, NimbleNetTensor> {
-        val res2 = NimbleNet.runMethod("get_next_str", hashMapOf())
+        val res2 = NimbleNet.runMethod("get_token_stream", hashMapOf())
         check(res2.status) { "NimbleNet.runMethod('get_next_str') failed with error: ${res2.error?.message}" }
         return res2.payload
             ?: throw IllegalStateException("NimbleNet.runMethod('get_next_str') returned null payload")

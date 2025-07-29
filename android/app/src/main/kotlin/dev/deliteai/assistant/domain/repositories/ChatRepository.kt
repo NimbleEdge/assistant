@@ -52,12 +52,13 @@ class ChatRepository {
     suspend fun getModelName() = LLMService.getLLMName()
 
     fun getLLMText(textInput: String) = flow {
-        LLMService.feedInput(textInput, false)
+        repositoryScope.launch(Dispatchers.Default) {  LLMService.feedInput(textInput, false) }
         do {
             val outputMap = LLMService.getNextMap()
-            val currentOutputString = (outputMap["str"] as NimbleNetTensor).data.toString()
+            val currentOutputString = (outputMap["token_stream"] as NimbleNetTensor).data.toString()
+            Log.d(TAG, "token stream $currentOutputString")
             emit(GenerateResponseJobStatus.NextItem(currentOutputString))
-        } while (!outputMap.containsKey("finished"))
+        } while (!outputMap.containsKey("<|im_end|>"))
 
         emit(GenerateResponseJobStatus.Finished())
         Log.d(TAG, "startFeedbackLoop: LLM finished output")
