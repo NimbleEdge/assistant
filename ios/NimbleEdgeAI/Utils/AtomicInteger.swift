@@ -25,4 +25,10 @@ class AtomicInteger {
     func getAndIncrement() -> Int {
         return increment()
     }
+    
+    func set(_ value: Int) {
+        lock.lock()
+        defer { lock.unlock() }
+        self.value = value
+    }
 }

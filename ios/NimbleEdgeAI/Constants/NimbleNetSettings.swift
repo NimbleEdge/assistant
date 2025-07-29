@@ -5,11 +5,11 @@
  */
 
 class NimbleNetSettings {
-    public static var clientID = ""
-    public static var clientSecret = ""
-    public static var host = ""
-    public static var deviceId = ""
+    public static var clientID = "chatapp-test"
+    public static var clientSecret = "samplekey123"
+    public static var host = "https://apiv3.nimbleedge-staging.com"
+    public static var deviceId = "test"
     public static var debug = true
-    public static var compatibilityTag = ""
-    public static var lowerTierCompatibilityTag = ""
+    public static var compatibilityTag = "ios-DNE"
+    public static var lowerTierCompatibilityTag = "ios_chatApp_lowerTier"
 }

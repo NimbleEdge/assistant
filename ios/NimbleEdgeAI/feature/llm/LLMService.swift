@@ -8,11 +8,11 @@ import Foundation
 import NimbleNetiOS
 class LLMService {
     func feedInput(input: String) async throws {
-        await try LLMManager.feedInput(input: input)
+        try await LLMManager.feedInput(input: input)
     }
 
-    func getNextMap() async -> [String: NimbleNetTensor] {
-        await LLMManager.getNextMap()
+    func getNextMap() async throws ->  [String: NimbleNetTensor] {
+        try await LLMManager.getNextMap()
     }
     func stopLLM ()  throws{
         try LLMManager.stopLLM()

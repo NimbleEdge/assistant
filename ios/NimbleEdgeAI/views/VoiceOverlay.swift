@@ -16,6 +16,7 @@ struct VoiceOverlay: View {
     @ObservedObject var chatViewModel: ChatViewModel
     @StateObject private var speechRecognizer = SpeechRecognizer()
     let onDismiss: () -> Void
+    
     var body: some View {
         ZStack {
             Color.black.opacity(0.8)
@@ -33,11 +34,21 @@ struct VoiceOverlay: View {
                     speechRecognizer: speechRecognizer
                 )
                 
-                AnimatedSpeechText(
-                    isUserSpeaking: speechRecognizer.isRecording,
-                    currentText: speechRecognizer.transcript,
-                    persistedText: speechRecognizer.transcript
-                )
+                VStack {
+                    
+                    Text(
+                        chatViewModel.isASRActive ? "Thinking..." :
+                        (speechRecognizer.isRecording && speechRecognizer.transcript.isEmpty) ? "Listening..." :
+                        (speechRecognizer.isRecording && !speechRecognizer.transcript.isEmpty) ? speechRecognizer.transcript :
+                        "Tap to Speak! Ask me anything..."
+                    )
+                    .foregroundColor(.white)
+                    .font(.system(size: 14, weight: .medium))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 16)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(16)
                 
                 if chatViewModel.isInterruptButtonVisible {
                     Text("Interrupt")
@@ -71,6 +82,12 @@ struct VoiceOverlay: View {
         }
         .preferredColorScheme(.dark)
         .onAppear {
+            speechRecognizer.onRecordingStoped = {
+                chatViewModel.addNewMessageToChatHistory(message: speechRecognizer.transcript, isUserInput: true)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: {
+                    chatViewModel.passTextInputToLLM(speechRecognizer.transcript)
+                })
+            }
             if speechRecognizer.isAuthorized && !speechRecognizer.isRecording {
                 speechRecognizer.startRecording()
             }
@@ -137,11 +154,8 @@ struct AnimatedVoiceOrb: View {
                 onTap: {
                     if speechRecognizer.isRecording {
                         speechRecognizer.stopRecording()
-                        chatViewModel.playFillerAudio()
                         chatViewModel.addNewMessageToChatHistory(message: speechRecognizer.transcript, isUserInput: true)
                         chatViewModel.passTextInputToLLM(speechRecognizer.transcript)
-                        speechRecognizer.fullTranscript = ""
-
                     } else {
                         speechRecognizer.startRecording()
                     }
@@ -335,35 +349,3 @@ struct OuterWaveView: View {
             .frame(width: size * 1.3, height: size * 1.3)
     }
 }
-
-struct AnimatedSpeechText: View {
-    let isUserSpeaking: Bool
-    let currentText: String
-    let persistedText: String
-    
-    var body: some View {
-        VStack {
-            Text(textToShow)
-                .foregroundColor(.white)
-                .font(.system(size: 14, weight: .medium))
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 16)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(16)
-    }
-    
-    private var textToShow: String {
-        switch true {
-        case isUserSpeaking:
-            return "Listening...\nTap to send"
-        case !currentText.isEmpty:
-            return currentText
-        case !persistedText.isEmpty:
-            return persistedText
-        default:
-            return "Tap to Speak! Ask me anything..."
-        }
-    }
-}
-

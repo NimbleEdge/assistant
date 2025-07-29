@@ -22,8 +22,7 @@ class ChatViewModel: ObservableObject {
     // Voice overlay state
     @Published var isOverlayVisible: Bool = false
     @Published var isInterruptButtonVisible:Bool = false
-    
-    var lastSentInputToLLM: String = ""
+
     
     @Published var isLLMActive: Bool = false
     @Published var isASRActive: Bool = false
@@ -48,7 +47,7 @@ class ChatViewModel: ObservableObject {
         self.isOverlayVisible = visible
     }
     func cancelTTS() {
-       ContinuousAudioPlayer.shared.cancelPlaybackAndResetQueue()
+        chatRepository.continuousAudioPlayer.cancelPlaybackAndResetQueue()
     }
     
     func set(chatID: String?) {
@@ -107,10 +106,10 @@ class ChatViewModel: ObservableObject {
     }
     
     func passTextInputToLLM(_ textInput: String) {
+        
         if(textInput == "") { return }
-        print("LLM Triggered by \(textInput)")
+        
         var index = AtomicInteger(value: 1)
-        lastSentInputToLLM = textInput
         DispatchQueue.main.async {
             self.currentMessageLoading = true
             self.outputStream = ""
@@ -120,33 +119,35 @@ class ChatViewModel: ObservableObject {
             self.chatHistory.append(chatMessage)
             self.onNewMessageAdded?(self.chatHistory.last!)
         }
+        
         if isOverlayVisible {
+            DispatchQueue.main.async { self.isASRActive = true }
             chattingTask = Task(priority: .low) {
-            do {
-                await chatRepository.processUserInput(
-                    textInput: textInput,
-                    onOutputString: { [weak self] output in
-                        if output.isEmpty { return }
-                        DispatchQueue.main.async {
-                            guard let self, self.isLLMActive else { return }
-
-                            
-                            if let outputStream = self.outputStream, outputStream.isEmpty {
-                                //triming extra spcaes
-                                let newOutputStream = ((self.outputStream ?? "") + output)
-                                if let range = newOutputStream.range(of: "\\S", options: .regularExpression) {
-                                    self.outputStream = newOutputStream[range.lowerBound...].description
+                do {
+                    await chatRepository.processUserInput(
+                        textInput: textInput,
+                        onOutputString: { [weak self] output in
+                            if output.isEmpty { return }
+                            DispatchQueue.main.async {
+                                guard let self, self.isLLMActive else { return }
+                                
+                                
+                                if let outputStream = self.outputStream, outputStream.isEmpty {
+                                    //triming extra spcaes
+                                    let newOutputStream = ((self.outputStream ?? "") + output)
+                                    if let range = newOutputStream.range(of: "\\S", options: .regularExpression) {
+                                        self.outputStream = newOutputStream[range.lowerBound...].description
+                                        self.chatHistory[self.chatHistory.count - 1].message = self.outputStream
+                                        self.onOutputStreamUpdated?(self.outputStream)
+                                    }
+                                } else {
+                                    self.outputStream = (self.outputStream ?? "") + output
                                     self.chatHistory[self.chatHistory.count - 1].message = self.outputStream
                                     self.onOutputStreamUpdated?(self.outputStream)
                                 }
-                            } else {
-                                self.outputStream = (self.outputStream ?? "") + output
-                                self.chatHistory[self.chatHistory.count - 1].message = self.outputStream
-                                self.onOutputStreamUpdated?(self.outputStream)
+                                
                             }
-
-                        }
-                    },
+                        },
                         onFirstAudioGenerated: { [weak self] in
                             DispatchQueue.main.async {
                                 self?.currentMessageLoading = false
@@ -159,6 +160,7 @@ class ChatViewModel: ObservableObject {
                             DispatchQueue.main.async {
                                 self.cancelCurrentLLM()
                                 self.isInterruptButtonVisible = false
+                                self.isASRActive = true
                             }
                         },
                         onError: { [weak self] error in
@@ -174,7 +176,7 @@ class ChatViewModel: ObservableObject {
         else{
             chattingTask = Task(priority: .low) {
                 do {
-                    await chatRepository.processUserTextInput(
+                    await chatRepository.processUserInput(
                         textInput: textInput,
                         onOutputString: { [weak self] output in
                             if output.isEmpty { return }
@@ -266,9 +268,8 @@ class ChatViewModel: ObservableObject {
             print("Error clearing chat: \(error.localizedMessage)")
         }
     }
-    func playFillerAudio() {
-        chatRepository.playFillerAudio()
-    }
+
+    
     func resetUpdateCallBacks() {
         onNewMessageAdded = nil
         onChatHistoryUpdated = nil

@@ -23,7 +23,7 @@ class TTSManager {
         }
     }
 
-    static func getPCM(input: String) -> [Float] {
+    static func getPCM(input: String) throws -> [Float] {
         let ttsresult = NimbleNetApi.runMethod(
             methodName: "run_model",
             inputs: [
@@ -34,6 +34,12 @@ class TTSManager {
                 )
             ]
         )
+        
+        if ttsresult.status == false {
+            //TODO: Make this better
+            throw NSError(domain: "TTSresult failed", code: 0)
+        }
+        
         let pcm: [Float] = ttsresult.payload?["audio"]?.data as? [Float] ?? []
         return pcm
     }
