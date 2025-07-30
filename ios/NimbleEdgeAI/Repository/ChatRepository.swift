@@ -12,7 +12,7 @@ import NimbleNetiOS
 class ChatRepository {
     
     private var isLLMActive = false
-    let minCharLenForTTS = 30
+    let minCharLenForTTS = 50
     private var ttsJobs = [Task<Void, Never>]()
     private let repositoryQueue = DispatchQueue(label: "com.app.repository", qos: .userInitiated)
     private let ttsSemaphore = DispatchSemaphore(value: 3)
@@ -99,14 +99,12 @@ class ChatRepository {
                     }
 
                     // First audio generation – run synchronously for lowest latency
-                    if !isFirstAudioGeneratedFlag && ttsQueue.count >= 80 {
+                    if !isFirstAudioGeneratedFlag && ttsQueue.count >= 120 {
                         let (remaining, candidate) = breakChunks(ttsQueue1: ttsQueue)
                         ttsQueue = remaining
                         let firstAudioQueue = indexToQueueNext.getAndIncrement()
                         print("🔊 [LLM] First LLM audio assigned queue #\(firstAudioQueue)")
-                        await breakTTSCandidates(ttsQueue1: candidate,
-                                                 queueToPlayAt: firstAudioQueue,
-                                                 onFirstAudioGenerated: onFirstAudioGenerated)
+                        triggerTTS(text: candidate, queueToPlayAt: firstAudioQueue)
                         isFirstAudioGeneratedFlag = true
                         onFirstAudioGenerated()
                     }
@@ -122,17 +120,21 @@ class ChatRepository {
                             defer {
                                 Task { await semaphore.signal() }
                             }
-                            await breakTTSCandidates(ttsQueue1: candidate,
-                                                     queueToPlayAt: queueNumber,
-                                                     onFirstAudioGenerated: onFirstAudioGenerated)
+                            triggerTTS(text: candidate, queueToPlayAt: queueNumber)
                         }
                     }
 
                     if outputMap["finished"] != nil {
+                        // Process final chunk using same semaphore logic
                         if !ttsQueue.isEmpty {
-                            await breakTTSCandidates(ttsQueue1: ttsQueue,
-                                                     queueToPlayAt: indexToQueueNext.getAndIncrement(),
-                                                     onFirstAudioGenerated: onFirstAudioGenerated)
+                            Task {
+                                await semaphore.wait()
+                                let finalQueue = indexToQueueNext.getAndIncrement()
+                                defer {
+                                    Task { await semaphore.signal() }
+                                }
+                                triggerTTS(text: ttsQueue, queueToPlayAt: finalQueue)
+                            }
                         }
                         await onFinished()
                         isLLMActive = false
@@ -155,24 +157,35 @@ class ChatRepository {
         return (ttsQueue, ttsCandidate)
     }
     
-    func handleFinish(ttsQueue: String, latestOutput: String?, queueToPlayAt: Int, onFirstAudioGenerated: @escaping () async -> Void, onFinished: @escaping () async -> Void) async {
-        var ttsQueue: String = ttsQueue
-        if let latestOutput = latestOutput {
-            ttsQueue.append(contentsOf: latestOutput)
+    func breakTTSCandidates(ttsQueue1: String, startingQueueNumber: Int, onFirstAudioGenerated: @escaping () async -> Void) async {
+        let text = ttsQueue1.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // If text is short or doesn't need breaking, just trigger TTS directly
+        if text.count <= 150 || text.isEmpty {
+            if !text.isEmpty {
+                triggerTTS(text: text, queueToPlayAt: startingQueueNumber)
+            }
+            return
         }
         
-        await breakTTSCandidates(ttsQueue1: ttsQueue, queueToPlayAt: queueToPlayAt, onFirstAudioGenerated: onFirstAudioGenerated)
+        // Break down large text into smaller chunks
+        var remainingText = text
+        var currentQueueNumber = startingQueueNumber
         
-        await onFinished()
-        isLLMActive = false
-    }
-    
-    func breakTTSCandidates(ttsQueue1: String, queueToPlayAt: Int, onFirstAudioGenerated: @escaping () async -> Void) async {
-        var ttsQueue = ttsQueue1
-        while !ttsQueue.isEmpty {
-            var chunksOutput = breakChunks(ttsQueue1: ttsQueue)
-            ttsQueue = chunksOutput.ttsQueue
-            triggerTTS(text: chunksOutput.ttsCandidate, queueToPlayAt: queueToPlayAt)
+        while !remainingText.isEmpty && remainingText.count > 50 {
+            let cutoffIndex = getCutOffIndexForTTSQueue(in: remainingText)
+            let chunk = remainingText.slice(from: 0, to: cutoffIndex)
+            remainingText.removeChunk(from: 0, to: cutoffIndex)
+            
+            if !chunk.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                triggerTTS(text: chunk, queueToPlayAt: currentQueueNumber)
+                currentQueueNumber = indexToQueueNext.getAndIncrement()
+            }
+        }
+        
+        // Handle any remaining text
+        if !remainingText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            triggerTTS(text: remainingText, queueToPlayAt: currentQueueNumber)
         }
     }
     
@@ -224,8 +237,8 @@ class ChatRepository {
     }
     
     func getCutOffIndexForTTSQueue(in input: String) -> Int {
-        let maxCharLen = 80
-        let minCharLen = 20
+        let maxCharLen = 150
+        let minCharLen = 50
         let limit = min(input.count, maxCharLen)
         
         if limit <= minCharLen {
