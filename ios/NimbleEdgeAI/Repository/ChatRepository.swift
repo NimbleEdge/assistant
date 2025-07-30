@@ -27,17 +27,14 @@ class ChatRepository {
     }
     let semaphore = AsyncSemaphore(value: 3)
     
-    func triggerTTS(text:String) {
+    func triggerTTS(text:String, queueToPlayAt: Int,) {
         let cleanText = cleanText(text)
         let beforeTime = Date().timeIntervalSince1970
-        print("cleanText \(cleanText.count)")
         let pcm = try! TTSService.getPCM(input: cleanText)
         let endTime = Date().timeIntervalSince1970
-        print("Difference in PCM genration time: \(endTime - beforeTime)")
-        let queueNumber = indexToQueueNext.getAndIncrement()
-        print("triggerTTS audio queueNumber: \(queueNumber), text: \(cleanText), time: \(Date().timeIntervalSince1970)")
+//        let queueNumber = indexToQueueNext.getAndIncrement()
         Task {
-            continuousAudioPlayer.queueAudio(queueNumber: queueNumber, pcm: pcm)
+            continuousAudioPlayer.queueAudio(queueNumber: queueToPlayAt, pcm: pcm)
         }
     }
     
@@ -93,7 +90,6 @@ class ChatRepository {
                 
                 Task { await triggerFillerAudioTask() }
                 
-                var cmt = 0
                 while true {
                     let outputMap = try await llmService.getNextMap()
                     
@@ -101,7 +97,7 @@ class ChatRepository {
                     
                     if outputMap["finished"] != nil {
                         Task {
-                            await handleFinish(ttsQueue: ttsQueue, latestOutput: str, onFirstAudioGenerated: onFirstAudioGenerated, onFinished: onFinished)
+                            await handleFinish(ttsQueue: ttsQueue, latestOutput: str, queueToPlayAt: indexToQueueNext.getAndIncrement(), onFirstAudioGenerated: onFirstAudioGenerated, onFinished: onFinished)
                         }
                         onOutputString(str!)
                         break
@@ -119,30 +115,35 @@ class ChatRepository {
                     }
                     
                     if !isFirstAudioGeneratedFlag {
+                        
+                        if ttsQueue.count < 80 {
+                            continue
+                        }
+                        
                         // Break off ONE chunk and play it now
                         let (newQueue, ttsCandidate) = breakChunks(ttsQueue1: ttsQueue)
                         ttsQueue = newQueue
                         
                         // Send the candidate (not the remainder) to TTS
-                        await breakTTSCandidates(ttsQueue1: ttsCandidate, onFirstAudioGenerated: onFirstAudioGenerated)
+                        await breakTTSCandidates(ttsQueue1: ttsCandidate, queueToPlayAt: indexToQueueNext.getAndIncrement(), onFirstAudioGenerated: onFirstAudioGenerated)
                         isFirstAudioGeneratedFlag = true
                         onFirstAudioGenerated()
                     } else {
-                        print("cmt: \(cmt)")
                         Task {
                             await semaphore.wait()
-                            cmt += 1
-                            defer { Task {
-                                await semaphore.signal()
-                                cmt -= 1
-                            } }
+                            var queueToPlayAt = indexToQueueNext.getAndIncrement()
+                            defer {
+                                Task {
+                                    await semaphore.signal()
+                                }
+                            }
                             
                             // Break off ONE chunk and play it now
                             let (newQueue, ttsCandidate) = breakChunks(ttsQueue1: ttsQueue)
                             ttsQueue = newQueue
                             
                             // Send the candidate (not the remainder) to TTS
-                            await breakTTSCandidates(ttsQueue1: ttsCandidate, onFirstAudioGenerated: onFirstAudioGenerated)
+                            await breakTTSCandidates(ttsQueue1: ttsCandidate, queueToPlayAt: queueToPlayAt, onFirstAudioGenerated: onFirstAudioGenerated)
                         }
                     }
                                     
@@ -165,25 +166,25 @@ class ChatRepository {
         return (ttsQueue, ttsCandidate)
     }
     
-    func handleFinish(ttsQueue: String, latestOutput: String?, onFirstAudioGenerated: @escaping () async -> Void, onFinished: @escaping () async -> Void,) async {
+    func handleFinish(ttsQueue: String, latestOutput: String?, queueToPlayAt: Int, onFirstAudioGenerated: @escaping () async -> Void, onFinished: @escaping () async -> Void,) async {
         var ttsQueue: String = ttsQueue
         if let latestOutput = latestOutput {
             ttsQueue.append(contentsOf: latestOutput)
         }
         print("Last Candidate Called: \(ttsQueue.count)")
         
-        await breakTTSCandidates(ttsQueue1: ttsQueue, onFirstAudioGenerated: onFirstAudioGenerated)
+        await breakTTSCandidates(ttsQueue1: ttsQueue, queueToPlayAt: queueToPlayAt, onFirstAudioGenerated: onFirstAudioGenerated)
         
         await onFinished()
         isLLMActive = false
     }
     
-    func breakTTSCandidates(ttsQueue1: String, onFirstAudioGenerated: @escaping () async -> Void) async {
+    func breakTTSCandidates(ttsQueue1: String, queueToPlayAt: Int, onFirstAudioGenerated: @escaping () async -> Void) async {
         var ttsQueue = ttsQueue1
         while !ttsQueue.isEmpty {
             var chunksOutput = breakChunks(ttsQueue1: ttsQueue)
             ttsQueue = chunksOutput.ttsQueue
-            triggerTTS(text: chunksOutput.ttsCandidate)
+            triggerTTS(text: chunksOutput.ttsCandidate, queueToPlayAt: queueToPlayAt)
         }
     }
     
