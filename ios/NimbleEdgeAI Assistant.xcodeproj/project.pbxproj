@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		3CA92D0B1B01DD9CADB50BC8 /* Pods_NimbleEdgeAI_Assistant.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1E9E7BB25059570CFDCAC531 /* Pods_NimbleEdgeAI_Assistant.framework */; };
+		C70228B32E3A6B7C000DB603 /* Helpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70228B22E3A6B79000DB603 /* Helpers.swift */; };
+		C70228B52E3A6BB2000DB603 /* AsyncSemaphore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70228B42E3A6BAA000DB603 /* AsyncSemaphore.swift */; };
 		E418195A2DE4F365004499BB /* DownloadItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = E41819592DE4F35E004499BB /* DownloadItem.swift */; };
 		E418195C2DE78CDF004499BB /* ChatTableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E418195B2DE78C98004499BB /* ChatTableView.swift */; };
 		E418195F2DE8655B004499BB /* MessageCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = E418195E2DE86555004499BB /* MessageCell.swift */; };
@@ -60,6 +62,8 @@
 		1E9E7BB25059570CFDCAC531 /* Pods_NimbleEdgeAI_Assistant.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_NimbleEdgeAI_Assistant.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		4292964F80A942E8B0690AF2 /* Pods-NimbleEdgeAI Assistant.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-NimbleEdgeAI Assistant.debug.xcconfig"; path = "Target Support Files/Pods-NimbleEdgeAI Assistant/Pods-NimbleEdgeAI Assistant.debug.xcconfig"; sourceTree = "<group>"; };
 		89F5ED9D2E39F1F500B562E0 /* NimbleEdgeAI Assistant.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "NimbleEdgeAI Assistant.entitlements"; sourceTree = "<group>"; };
+		C70228B22E3A6B79000DB603 /* Helpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Helpers.swift; sourceTree = "<group>"; };
+		C70228B42E3A6BAA000DB603 /* AsyncSemaphore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncSemaphore.swift; sourceTree = "<group>"; };
 		DB0AE46584A8855ED029FE88 /* Pods-NimbleEdgeAI Assistant.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-NimbleEdgeAI Assistant.release.xcconfig"; path = "Target Support Files/Pods-NimbleEdgeAI Assistant/Pods-NimbleEdgeAI Assistant.release.xcconfig"; sourceTree = "<group>"; };
 		E41819592DE4F35E004499BB /* DownloadItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadItem.swift; sourceTree = "<group>"; };
 		E418195B2DE78C98004499BB /* ChatTableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatTableView.swift; sourceTree = "<group>"; };
@@ -192,6 +196,8 @@
 		F13F5E9B2DBB67F8005B44F0 /* Utils */ = {
 			isa = PBXGroup;
 			children = (
+				C70228B42E3A6BAA000DB603 /* AsyncSemaphore.swift */,
+				C70228B22E3A6B79000DB603 /* Helpers.swift */,
 				E4F44C062DF20C16002272F2 /* DeviceIdentification.swift */,
 				F182E22E2E1E6F9200C03930 /* Extensions.swift */,
 				F182E2302E1E70FC00C03930 /* AtomicInteger.swift */,
@@ -466,6 +472,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F1EFB7FC2DC22EFB0031A0E1 /* TopBarView.swift in Sources */,
+				C70228B32E3A6B7C000DB603 /* Helpers.swift in Sources */,
 				E4F44C052DEF949B002272F2 /* Constants.swift in Sources */,
 				F1713F482D1026C60037358A /*  MainViewModel.swift in Sources */,
 				F13F5EB12DBB97EC005B44F0 /* ChatViewModel.swift in Sources */,
@@ -490,6 +497,7 @@
 				F1713F362D1024220037358A /* ContentView.swift in Sources */,
 				F1713F342D1024220037358A /* NimbleEdgeAIApp.swift in Sources */,
 				F1EFB7FA2DC2297D0031A0E1 /* CacheRepository.swift in Sources */,
+				C70228B52E3A6BB2000DB603 /* AsyncSemaphore.swift in Sources */,
 				E4F44C072DF20C1E002272F2 /* DeviceIdentification.swift in Sources */,
 				F13F5E9D2DBB680C005B44F0 /* ContinousAudioPlayer.swift in Sources */,
 				E418195A2DE4F365004499BB /* DownloadItem.swift in Sources */,
