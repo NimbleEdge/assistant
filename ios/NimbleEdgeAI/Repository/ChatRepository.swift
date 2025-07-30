@@ -203,27 +203,93 @@ class ChatRepository {
     
     func getCutOffIndexForTTSQueue(in input: String) -> Int {
         let maxCharLen = 80
+        let minCharLen = 20
         let limit = min(input.count, maxCharLen)
-        let punctuationSet: Set<Character> = [",", "!", "?", ";"]
-
+        
+        if limit <= minCharLen {
+            return limit - 1
+        }
+        
         let characters = Array(input.prefix(limit))
-
-        for i in (0..<characters.count).reversed() {
+        
+        // Priority 1: Strong sentence breaks (period, exclamation, question)
+        let strongBreaks: Set<Character> = [".", "!", "?"]
+        
+        // Priority 2: Clause breaks (comma, semicolon, colon)
+        let clauseBreaks: Set<Character> = [",", ";", ":"]
+        
+        // Priority 3: Natural pauses (dash, parentheses)
+        let naturalPauses: Set<Character> = ["-", "—", "(", ")", "[", "]"]
+        
+        // Priority 4: Conjunctions and connecting words (look for " and ", " or ", " but ", etc.)
+        let conjunctions = [" and ", " or ", " but ", " so ", " yet ", " for ", " nor ", " because ", " since ", " while ", " although ", " however ", " therefore ", " moreover "]
+        
+        // Search from ideal position (75% of max length) backwards for best break
+        let idealPosition = min(Int(Double(maxCharLen) * 0.75), limit - 1)
+        
+        // Priority 1: Look for strong sentence breaks near ideal position
+        for i in (minCharLen...idealPosition).reversed() {
             let char = characters[i]
-            
-            // Check "." only if not part of a number like "4.5"
             if char == "." {
                 let isPreviousDigit = i > 0 && characters[i - 1].isNumber
                 let isNextDigit = i + 1 < characters.count && characters[i + 1].isNumber
                 if !(isPreviousDigit && isNextDigit) {
+                    // Ensure we don't break on abbreviations like "Mr." or "etc."
+                    if i + 2 < characters.count && characters[i + 1] == " " && characters[i + 2].isUppercase {
+                        return i + 1 // Include the space after period
+                    } else if i + 1 < characters.count && characters[i + 1] == " " {
+                        return i + 1
+                    }
                     return i
                 }
-            } else if punctuationSet.contains(char) {
+            } else if strongBreaks.contains(char) {
+                return i + 1 < characters.count && characters[i + 1] == " " ? i + 1 : i
+            }
+        }
+        
+        // Priority 2: Look for clause breaks
+        for i in (minCharLen...idealPosition).reversed() {
+            let char = characters[i]
+            if clauseBreaks.contains(char) {
+                return i + 1 < characters.count && characters[i + 1] == " " ? i + 1 : i
+            }
+        }
+        
+        // Priority 3: Look for natural pauses
+        for i in (minCharLen...idealPosition).reversed() {
+            let char = characters[i]
+            if naturalPauses.contains(char) {
                 return i
             }
         }
-
-        return (limit - 1)
+        
+        // Priority 4: Look for conjunctions
+        let text = String(characters)
+        for conjunction in conjunctions {
+            if let range = text.range(of: conjunction, options: [.backwards, .caseInsensitive]) {
+                let index = text.distance(from: text.startIndex, to: range.lowerBound)
+                if index >= minCharLen && index <= idealPosition {
+                    return index
+                }
+            }
+        }
+        
+        // Priority 5: Look for word boundaries (spaces) near ideal position
+        for i in (minCharLen...idealPosition).reversed() {
+            if characters[i] == " " && i > 0 && !characters[i - 1].isWhitespace {
+                return i
+            }
+        }
+        
+        // Priority 6: Avoid breaking in the middle of words - find previous space
+        for i in (minCharLen...limit - 1).reversed() {
+            if characters[i] == " " {
+                return i
+            }
+        }
+        
+        // Last resort: return the limit
+        return limit - 1
     }
   
     func stopLLM() {

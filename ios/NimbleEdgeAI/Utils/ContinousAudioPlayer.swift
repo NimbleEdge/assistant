@@ -15,16 +15,47 @@ class ContinuousAudioPlayer {
     private var expectedQueue = AtomicInteger(value: 1)
     private var currentAudioPlayer: AVAudioPlayer?
     private var playbackLoopTask: Task<Void, Never>?
-    private var audioEngine: AVAudioEngine?
-    private var audioPlayerNode: AVAudioPlayerNode?
+    private var audioEngine: AVAudioEngine
+    private var audioPlayerNode: AVAudioPlayerNode
+    private var audioFormat: AVAudioFormat
+    private var isEngineRunning = false
     
     init(sampleRate: Int = 24000) {
         self.sampleRate = sampleRate
+        
+        // Initialize persistent audio engine
+        self.audioFormat = AVAudioFormat(
+            commonFormat: .pcmFormatFloat32,
+            sampleRate: Double(sampleRate),
+            channels: 1,
+            interleaved: true
+        )!
+        
+        self.audioEngine = AVAudioEngine()
+        self.audioPlayerNode = AVAudioPlayerNode()
+        
+        setupAudioEngine()
         startContinuousPlaybackLoop()
     }
     
+    private func setupAudioEngine() {
+        audioEngine.attach(audioPlayerNode)
+        audioEngine.connect(audioPlayerNode, to: audioEngine.mainMixerNode, format: audioFormat)
+        
+        do {
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
+            try AVAudioSession.sharedInstance().setActive(true)
+            try audioEngine.start()
+            isEngineRunning = true
+            print("🔊 [Engine] Persistent audio engine started successfully")
+        } catch {
+            print("🔊 [Engine] Failed to start audio engine: \(error)")
+            isEngineRunning = false
+        }
+    }
+    
     func isPlayingOrMightPlaySoonSubject() -> Bool {
-        let trackPlaying = currentAudioPlayer != nil && currentAudioPlayer!.isPlaying
+        let trackPlaying = (currentAudioPlayer?.isPlaying ?? false) || audioPlayerNode.isPlaying
         return (!audioQueue.isEmpty || trackPlaying)
     }
     
@@ -46,11 +77,9 @@ class ContinuousAudioPlayer {
             currentAudioPlayer = nil
         }
         
-        // Stop audio engine if playing
-        audioPlayerNode?.stop()
-        audioEngine?.stop()
-        audioPlayerNode = nil
-        audioEngine = nil
+        // Stop and reset the persistent audio engine
+        audioPlayerNode.stop()
+        audioPlayerNode.reset()
         
         // Cancel playback loop
         playbackLoopTask?.cancel()
@@ -60,6 +89,11 @@ class ContinuousAudioPlayer {
             audioQueue.removeAll()
         }
         expectedQueue.set(1)
+        
+        // Ensure engine is running for next session
+        if !isEngineRunning {
+            setupAudioEngine()
+        }
         
         // Restart the playback loop
         startContinuousPlaybackLoop()
@@ -113,76 +147,56 @@ class ContinuousAudioPlayer {
     }
     
     private func playAudioSegment(pcmData: [Float], sampleRate: Double = 24000) async {
-        print("🔊 [Audio] Starting Float playback: \(pcmData.count) samples")
-        let format = AVAudioFormat(
-            commonFormat: .pcmFormatFloat32,
-            sampleRate: sampleRate,
-            channels: 1,
-            interleaved: true
-        )!
-
+        print("🔊 [Audio] Scheduling Float buffer: \(pcmData.count) samples")
+         
+        if !isEngineRunning {
+            print("🔊 [Audio] Engine not running, attempting restart")
+            setupAudioEngine()
+            guard isEngineRunning else {
+                print("🔊 [Audio] Failed to restart engine, skipping chunk")
+                return
+            }
+        }
+        
         let frameCount = AVAudioFrameCount(pcmData.count)
-        guard let audioBuffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount) else {
-            print("Failed to allocate audio buffer")
+        guard let audioBuffer = AVAudioPCMBuffer(pcmFormat: audioFormat, frameCapacity: frameCount) else {
+            print("🔊 [Audio] Failed to allocate audio buffer")
             return
         }
-
+        
         audioBuffer.frameLength = frameCount
         let floatChannelData = audioBuffer.floatChannelData![0]
-
+        
         for i in 0..<pcmData.count {
-            floatChannelData[i] = max(-1.0, min(1.0, pcmData[i])) // Clamp between -1 and 1
+            floatChannelData[i] = max(-1.0, min(1.0, pcmData[i]))
         }
-
-        let engine = AVAudioEngine()
-        let playerNode = AVAudioPlayerNode()
-        engine.attach(playerNode)
-        engine.connect(playerNode, to: engine.mainMixerNode, format: format)
-
-        try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
-        try? AVAudioSession.sharedInstance().setActive(true)
-
-        do {
-            print("🔊 [Audio] Starting engine and scheduling buffer")
-            try engine.start()
-            playerNode.play()
-            playerNode.scheduleBuffer(audioBuffer, at: nil, options: []) {
-                print("🔊 [Audio] Buffer finished playing")
-                Task { @MainActor in
-                    playerNode.stop()
-                    engine.stop()
-                    self.audioPlayerNode = nil
-                    self.audioEngine = nil
-                }
-            }
-
-            // Retain strong references so the engine isn't deallocated mid-playback
-            self.audioEngine = engine
-            self.audioPlayerNode = playerNode
-
-            print("🔊 [Audio] Waiting for playback to complete...")
-            // Wait for playback to complete
-            var waitCount = 0
-            let maxWaitCount = 200 // 10 seconds max wait
-            while playerNode.isPlaying && !Task.isCancelled && waitCount < maxWaitCount {
-                waitCount += 1
-                try? await Task.sleep(nanoseconds: 50_000_000)
-            }
-            
-            if waitCount >= maxWaitCount {
-                print("🔊 [Audio] WARNING: Playback wait timeout, forcing completion")
-            }
-            
-            print("🔊 [Audio] Float playback completed")
-
-        } catch {
-            print("Error playing audio segment: \(error)")
+        
+        // Start player if not already playing
+        if !audioPlayerNode.isPlaying {
+            audioPlayerNode.play()
+            print("🔊 [Audio] Started audio player node")
         }
+        
+        // Schedule buffer for gapless playback
+        audioPlayerNode.scheduleBuffer(audioBuffer, at: nil, options: []) {
+            print("🔊 [Audio] Buffer completed: \(pcmData.count) samples")
+        }
+        
+        print("🔊 [Audio] Buffer scheduled successfully")
+        
+        // Calculate approximate playback duration for pacing
+        let durationSeconds = Double(pcmData.count) / Double(sampleRate)
+        let durationNanoseconds = UInt64(durationSeconds * 1_000_000_000)
+        
+        // Wait for most of the buffer duration to maintain proper pacing
+        try? await Task.sleep(nanoseconds: durationNanoseconds)
     }
     
     deinit {
         playbackLoopTask?.cancel()
         currentAudioPlayer?.stop()
+        audioPlayerNode.stop()
+        audioEngine.stop()
     }
 }
 
