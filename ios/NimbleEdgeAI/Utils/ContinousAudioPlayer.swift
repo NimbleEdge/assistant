@@ -13,7 +13,7 @@ class ContinuousAudioPlayer {
     private let lock = NSLock()
     private var audioQueue = [Int: [Any]]() 
     private var expectedQueue = AtomicInteger(value: 1)
-    private var currentAudioPlayer: AVAudioPlayer?
+
     private var playbackLoopTask: Task<Void, Never>?
     private var audioEngine: AVAudioEngine
     private var audioPlayerNode: AVAudioPlayerNode
@@ -54,7 +54,7 @@ class ContinuousAudioPlayer {
     }
     
     func isPlayingOrMightPlaySoonSubject() -> Bool {
-        let trackPlaying = (currentAudioPlayer?.isPlaying ?? false) || audioPlayerNode.isPlaying
+        let trackPlaying = audioPlayerNode.isPlaying
         return (!audioQueue.isEmpty || trackPlaying)
     }
     
@@ -92,12 +92,6 @@ class ContinuousAudioPlayer {
     }
     
     func cancelPlaybackAndResetQueue() {
-        // Stop the current audio if playing
-        if let player = currentAudioPlayer {
-            player.stop()
-            currentAudioPlayer = nil
-        }
-        
         // Stop and reset the persistent audio engine
         audioPlayerNode.stop()
         audioPlayerNode.reset()
@@ -115,7 +109,7 @@ class ContinuousAudioPlayer {
         if !isEngineRunning {
             setupAudioEngine()
         }
-            }
+    }
     
     func startContinuousPlaybackLoop() {
         playbackLoopTask = Task(priority: .userInitiated) {
@@ -228,91 +222,72 @@ class ContinuousAudioPlayer {
     
     deinit {
         playbackLoopTask?.cancel()
-        currentAudioPlayer?.stop()
         audioPlayerNode.stop()
         audioEngine.stop()
     }
 }
 
-//TODO: Create a function that works without creating .wav file for [Int32]
+// Int32 PCM data now plays directly without creating temporary WAV files
 extension ContinuousAudioPlayer {
     
     private func playAudioSegment(pcmData: [Int32]) async {
-        print("[Audio] Starting Int32 playback: \(pcmData.count) samples")
-        var pcmBuffer = Data()
-        try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
-        try? AVAudioSession.sharedInstance().setActive(true)
-
-        for value in pcmData {
-            let clampedValue = Int16((value % Int32(Int16.max)))  // Ensure correct type casting
-            withUnsafeBytes(of: clampedValue.littleEndian) { pcmBuffer.append(contentsOf: $0) }
-        }
-        do {
-
-            let tempDir = FileManager.default.temporaryDirectory
-            let tempFile = tempDir.appendingPathComponent(UUID().uuidString + ".wav")
-
-            let header = createWAVHeader(dataSize: UInt32(pcmBuffer.count), sampleRate: UInt32(sampleRate))
-
-
-            try (header + pcmBuffer).write(to: tempFile)
-            let fileSize = try FileManager.default.attributesOfItem(atPath: tempFile.path)[.size] as? Int
-
-            print("[Audio] Created WAV file: \(tempFile.lastPathComponent), size: \(fileSize ?? 0) bytes")
-            let player = try AVAudioPlayer(contentsOf: tempFile)
-
-            currentAudioPlayer = player
-            player.prepareToPlay()
-            print("[Audio] Starting Int32 playback...")
-            player.play()
-
-            // Wait for playback to complete
-            while player.isPlaying && !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 50_000_000)
+        print("[Audio] Starting Int32 direct playback: \(pcmData.count) samples")
+        
+        if !isEngineRunning {
+            print("[Audio] Engine not running, attempting restart")
+            setupAudioEngine()
+            guard isEngineRunning else {
+                print("[Audio] Failed to restart engine, skipping chunk")
+                return
             }
-
-            print("[Audio] Int32 playback completed")
-            currentAudioPlayer = nil
-
-            try? FileManager.default.removeItem(at: tempFile)
-
-        } catch {
-            print("Error playing audio segment: \(error)")
-            currentAudioPlayer = nil
         }
+        
+        // Convert Int32 PCM data to Float format for direct playback
+        let floatPCM = pcmData.map { value in
+            // Normalize Int32 to Float range [-1.0, 1.0]
+            // Assuming Int32 values are in the range of Int16 for audio
+            let clampedValue = max(Int32(Int16.min), min(Int32(Int16.max), value))
+            return Float(clampedValue) / Float(Int16.max)
+        }
+        
+        print("[Audio] Converted \(pcmData.count) Int32 samples to Float format")
+        
+        let frameCount = AVAudioFrameCount(floatPCM.count)
+        guard let audioBuffer = AVAudioPCMBuffer(pcmFormat: audioFormat, frameCapacity: frameCount) else {
+            print("[Audio] Failed to allocate audio buffer for Int32 data")
+            return
+        }
+        
+        audioBuffer.frameLength = frameCount
+        let floatChannelData = audioBuffer.floatChannelData![0]
+        
+        // Copy the converted float data to the buffer
+        for i in 0..<floatPCM.count {
+            floatChannelData[i] = max(-1.0, min(1.0, floatPCM[i]))
+        }
+        
+        // Start player if not already playing
+        if !audioPlayerNode.isPlaying {
+            audioPlayerNode.play()
+            print("[Audio] Started audio player node for Int32 data")
+        }
+        
+        // Schedule buffer for gapless playback
+        audioPlayerNode.scheduleBuffer(audioBuffer, at: nil, options: []) {
+            print("[Audio] Int32 buffer completed: \(pcmData.count) samples")
+        }
+        
+        print("[Audio] Int32 buffer scheduled successfully")
+        
+        // Calculate approximate playback duration for pacing
+        let durationSeconds = Double(floatPCM.count) / Double(sampleRate)
+        let durationNanoseconds = UInt64(durationSeconds * 1_000_000_000)
+        
+        // Wait for most of the buffer duration to maintain proper pacing
+        try? await Task.sleep(nanoseconds: durationNanoseconds)
     }
     
-    private func createWAVHeader(dataSize: UInt32, sampleRate: UInt32) -> Data {
-        var header = Data()
-        
-        // RIFF chunk descriptor
-        header.append("RIFF".data(using: .ascii)!)
-        let chunkSize: UInt32 = 36 + dataSize
-        withUnsafeBytes(of: chunkSize.littleEndian) { header.append(contentsOf: $0) }
-        header.append("WAVE".data(using: .ascii)!)
-        
-        // "fmt " sub-chunk
-        header.append("fmt ".data(using: .ascii)!)
-        let subchunk1Size: UInt32 = 16
-        withUnsafeBytes(of: subchunk1Size.littleEndian) { header.append(contentsOf: $0) }
-        let audioFormat: UInt16 = 1 // PCM
-        withUnsafeBytes(of: audioFormat.littleEndian) { header.append(contentsOf: $0) }
-        let numChannels: UInt16 = 1 // Mono
-        withUnsafeBytes(of: numChannels.littleEndian) { header.append(contentsOf: $0) }
-        withUnsafeBytes(of: sampleRate.littleEndian) { header.append(contentsOf: $0) }
-        let byteRate: UInt32 = sampleRate * UInt32(numChannels) * 2
-        withUnsafeBytes(of: byteRate.littleEndian) { header.append(contentsOf: $0) }
-        let blockAlign: UInt16 = numChannels * 2
-        withUnsafeBytes(of: blockAlign.littleEndian) { header.append(contentsOf: $0) }
-        let bitsPerSample: UInt16 = 16
-        withUnsafeBytes(of: bitsPerSample.littleEndian) { header.append(contentsOf: $0) }
-        
-        // "data" sub-chunk
-        header.append("data".data(using: .ascii)!)
-        withUnsafeBytes(of: dataSize.littleEndian) { header.append(contentsOf: $0) }
-        
-        return header
-    }
+
     
 }
 
