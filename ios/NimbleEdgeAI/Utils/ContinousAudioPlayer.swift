@@ -46,9 +46,9 @@ class ContinuousAudioPlayer {
             try AVAudioSession.sharedInstance().setActive(true)
             try audioEngine.start()
             isEngineRunning = true
-            print("🔊 [Engine] Persistent audio engine started successfully")
+            print("[Engine] Persistent audio engine started successfully")
         } catch {
-            print("🔊 [Engine] Failed to start audio engine: \(error)")
+            print("[Engine] Failed to start audio engine: \(error)")
             isEngineRunning = false
         }
     }
@@ -62,12 +62,12 @@ class ContinuousAudioPlayer {
         lock.withLock {
             if audioQueue[queueNumber] == nil {
                 audioQueue[queueNumber] = pcm
-                print("🔊 [Queue] Enqueued chunk \(queueNumber), total queued: \(audioQueue.count)")
-                print("🔊 [Queue] Current queue keys: \(Array(audioQueue.keys).sorted())")
-                print("🔊 [Queue] Expected next: \(expectedQueue.getValue())")
+                print("[Queue] Enqueued chunk \(queueNumber), total queued: \(audioQueue.count)")
+                print("[Queue] Current queue keys: \(Array(audioQueue.keys).sorted())")
+                print("[Queue] Expected next: \(expectedQueue.getValue())")
             } else {
-                print("🔊 [Queue] WARNING: Attempted to queue duplicate chunk \(queueNumber) - ignoring")
-                print("🔊 [Queue] Current queue keys: \(Array(audioQueue.keys).sorted())")
+                print("[Queue] WARNING: Attempted to queue duplicate chunk \(queueNumber) - ignoring")
+                print("[Queue] Current queue keys: \(Array(audioQueue.keys).sorted())")
             }
         }
     }
@@ -88,7 +88,7 @@ class ContinuousAudioPlayer {
     
     func skipToQueue(_ queueNumber: Int) {
         expectedQueue.set(queueNumber)
-        print("🔊 [Skip] Jumped to queue #\(queueNumber)")
+        print("[Skip] Jumped to queue #\(queueNumber)")
     }
     
     func cancelPlaybackAndResetQueue() {
@@ -124,7 +124,7 @@ class ContinuousAudioPlayer {
     }
     
     private func continuousPlaybackLoop() async {
-        print("🔊 Playback loop started")
+        print("Playback loop started")
         while !Task.isCancelled {
             let queueNumber = expectedQueue.getValue()
             var segment: [Any]?
@@ -134,67 +134,67 @@ class ContinuousAudioPlayer {
                 let oldChunks = audioQueue.keys.filter { $0 < queueNumber }
                 for oldChunk in oldChunks {
                     audioQueue.removeValue(forKey: oldChunk)
-                    print("🔊 [Cleanup] Removed old chunk \(oldChunk)")
+                    print("[Cleanup] Removed old chunk \(oldChunk)")
                 }
             }
             
             // Check if we should skip queue 2 (second filler) and jump to queue 3 (first LLM audio)
             if queueNumber == 2 && hasAudioInQueue(queueNumber: 3) && !hasAudioInQueue(queueNumber: 2) {
-                print("🔊 [Skip] Queue 2 not found but queue 3 available - skipping second filler and jumping to queue 3")
+                print("[Skip] Queue 2 not found but queue 3 available - skipping second filler and jumping to queue 3")
                 skipToQueue(3)
                 continue // Restart loop with new queue number
             }
             
-            print("🔊 [Loop] Looking for chunk \(queueNumber), queue has: \(Array(audioQueue.keys).sorted())")
+            print("[Loop] Looking for chunk \(queueNumber), queue has: \(Array(audioQueue.keys).sorted())")
 
             // Fetch next segment thread-safely
             lock.withLock {
                 segment = audioQueue[queueNumber]
                 if segment != nil {
-                    print("🔊 [Loop] Found chunk \(queueNumber), removing from queue")
+                    print("[Loop] Found chunk \(queueNumber), removing from queue")
                     audioQueue.removeValue(forKey: queueNumber)
                 } else {
-                    print("🔊 [Loop] Chunk \(queueNumber) not found in queue")
+                    print("[Loop] Chunk \(queueNumber) not found in queue")
                 }
             }
 
             if let nextSegment = segment {
-                print("🔊 About to play queue number: \(queueNumber) @ \(Date().timeIntervalSince1970)")
-                print("🔊 [Loop] Chunk \(queueNumber) type: \(type(of: nextSegment)), count: \(nextSegment.count)")
+                print("About to play queue number: \(queueNumber) @ \(Date().timeIntervalSince1970)")
+                print("[Loop] Chunk \(queueNumber) type: \(type(of: nextSegment)), count: \(nextSegment.count)")
                 if let intSeg = nextSegment as? [Int32] {
-                    print("🔊 [Loop] Playing Int32 segment with \(intSeg.count) samples")
+                    print("[Loop] Playing Int32 segment with \(intSeg.count) samples")
                     await playAudioSegment(pcmData: intSeg)
                 } else if let floatSeg = nextSegment as? [Float] {
-                    print("🔊 [Loop] Playing Float segment with \(floatSeg.count) samples")
+                    print("[Loop] Playing Float segment with \(floatSeg.count) samples")
                     await playAudioSegment(pcmData: floatSeg)
                 } else {
-                    print("🔊 [Loop] ERROR: Unknown segment type: \(type(of: nextSegment))")
+                    print("[Loop] ERROR: Unknown segment type: \(type(of: nextSegment))")
                 }
-                print("🔊 [Loop] Finished playing chunk \(queueNumber), incrementing to \(queueNumber + 1)")
+                print("[Loop] Finished playing chunk \(queueNumber), incrementing to \(queueNumber + 1)")
                 expectedQueue.increment()
             } else {
                 // No chunk ready, wait and retry
                 try? await Task.sleep(nanoseconds: 50_000_000) // 50 ms
             }
         }
-        print("🔊 Playback loop ended")
+        print("Playback loop ended")
     }
     
     private func playAudioSegment(pcmData: [Float], sampleRate: Double = 24000) async {
-        print("🔊 [Audio] Scheduling Float buffer: \(pcmData.count) samples")
+        print("[Audio] Scheduling Float buffer: \(pcmData.count) samples")
          
         if !isEngineRunning {
-            print("🔊 [Audio] Engine not running, attempting restart")
+            print("[Audio] Engine not running, attempting restart")
             setupAudioEngine()
             guard isEngineRunning else {
-                print("🔊 [Audio] Failed to restart engine, skipping chunk")
+                print("[Audio] Failed to restart engine, skipping chunk")
                 return
             }
         }
         
         let frameCount = AVAudioFrameCount(pcmData.count)
         guard let audioBuffer = AVAudioPCMBuffer(pcmFormat: audioFormat, frameCapacity: frameCount) else {
-            print("🔊 [Audio] Failed to allocate audio buffer")
+            print("[Audio] Failed to allocate audio buffer")
             return
         }
         
@@ -208,15 +208,15 @@ class ContinuousAudioPlayer {
         // Start player if not already playing
         if !audioPlayerNode.isPlaying {
             audioPlayerNode.play()
-            print("🔊 [Audio] Started audio player node")
+            print("[Audio] Started audio player node")
         }
         
         // Schedule buffer for gapless playback
         audioPlayerNode.scheduleBuffer(audioBuffer, at: nil, options: []) {
-            print("🔊 [Audio] Buffer completed: \(pcmData.count) samples")
+            print("[Audio] Buffer completed: \(pcmData.count) samples")
         }
         
-        print("🔊 [Audio] Buffer scheduled successfully")
+        print("[Audio] Buffer scheduled successfully")
         
         // Calculate approximate playback duration for pacing
         let durationSeconds = Double(pcmData.count) / Double(sampleRate)
@@ -238,7 +238,7 @@ class ContinuousAudioPlayer {
 extension ContinuousAudioPlayer {
     
     private func playAudioSegment(pcmData: [Int32]) async {
-        print("🔊 [Audio] Starting Int32 playback: \(pcmData.count) samples")
+        print("[Audio] Starting Int32 playback: \(pcmData.count) samples")
         var pcmBuffer = Data()
         try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
         try? AVAudioSession.sharedInstance().setActive(true)
@@ -258,12 +258,12 @@ extension ContinuousAudioPlayer {
             try (header + pcmBuffer).write(to: tempFile)
             let fileSize = try FileManager.default.attributesOfItem(atPath: tempFile.path)[.size] as? Int
 
-            print("🔊 [Audio] Created WAV file: \(tempFile.lastPathComponent), size: \(fileSize ?? 0) bytes")
+            print("[Audio] Created WAV file: \(tempFile.lastPathComponent), size: \(fileSize ?? 0) bytes")
             let player = try AVAudioPlayer(contentsOf: tempFile)
 
             currentAudioPlayer = player
             player.prepareToPlay()
-            print("🔊 [Audio] Starting Int32 playback...")
+            print("[Audio] Starting Int32 playback...")
             player.play()
 
             // Wait for playback to complete
@@ -271,7 +271,7 @@ extension ContinuousAudioPlayer {
                 try? await Task.sleep(nanoseconds: 50_000_000)
             }
 
-            print("🔊 [Audio] Int32 playback completed")
+            print("[Audio] Int32 playback completed")
             currentAudioPlayer = nil
 
             try? FileManager.default.removeItem(at: tempFile)
