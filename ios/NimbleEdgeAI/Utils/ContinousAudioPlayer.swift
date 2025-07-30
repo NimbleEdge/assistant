@@ -66,6 +66,9 @@ class ContinuousAudioPlayer {
                 print("🔊 [Queue] Enqueued chunk \(queueNumber), total queued: \(audioQueue.count)")
                 print("🔊 [Queue] Current queue keys: \(Array(audioQueue.keys).sorted())")
                 print("🔊 [Queue] Expected next: \(expectedQueue.getValue())")
+            } else {
+                print("🔊 [Queue] WARNING: Attempted to queue duplicate chunk \(queueNumber) - ignoring")
+                print("🔊 [Queue] Current queue keys: \(Array(audioQueue.keys).sorted())")
             }
         }
     }
@@ -120,6 +123,15 @@ class ContinuousAudioPlayer {
         while !Task.isCancelled {
             let queueNumber = expectedQueue.getValue()
             var segment: [Any]?
+            
+            // Clean up old chunks that are behind our expected position
+            lock.withLock {
+                let oldChunks = audioQueue.keys.filter { $0 < queueNumber }
+                for oldChunk in oldChunks {
+                    audioQueue.removeValue(forKey: oldChunk)
+                    print("🔊 [Cleanup] Removed old chunk \(oldChunk)")
+                }
+            }
             
             print("🔊 [Loop] Looking for chunk \(queueNumber), queue has: \(Array(audioQueue.keys).sorted())")
 
