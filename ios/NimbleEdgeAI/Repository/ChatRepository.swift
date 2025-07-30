@@ -19,7 +19,7 @@ class ChatRepository {
     private let ttsQueue = DispatchQueue(label: "com.yourapp.tts.concurrentQueue", attributes: .concurrent)
     let llmService = LLMService()
     let continuousAudioPlayer = ContinuousAudioPlayer()
-    let indexToQueueNext = AtomicInteger(value: 1)
+    let indexToQueueNext = AtomicInteger(value: 3) // Start at 3, filler uses 1 and 2
     var isFirstAudioGeneratedFlag = false
     let semaphore = AsyncSemaphore(value: 3)
     
@@ -77,9 +77,10 @@ class ChatRepository {
         onError: @escaping (Error) async -> Void
     ) async {
         isLLMActive = true
-        indexToQueueNext.set(1)
+        indexToQueueNext.set(3) // Reset to 3, filler uses 1 and 2
         isFirstAudioGeneratedFlag = false
         continuousAudioPlayer.cancelPlaybackAndResetQueue()
+        continuousAudioPlayer.startContinuousPlaybackLoop()
 
         var ttsQueue = ""
 
@@ -161,12 +162,12 @@ class ChatRepository {
         let text = ttsQueue1.trimmingCharacters(in: .whitespacesAndNewlines)
         
         // If text is short or doesn't need breaking, just trigger TTS directly
-        if text.count <= 150 || text.isEmpty {
-            if !text.isEmpty {
-                triggerTTS(text: text, queueToPlayAt: startingQueueNumber)
-            }
-            return
-        }
+        // if text.count <= 150 || text.isEmpty {
+        //     if !text.isEmpty {
+        //         triggerTTS(text: text, queueToPlayAt: startingQueueNumber)
+        //     }
+        //     return
+        // }
         
         // Break down large text into smaller chunks
         var remainingText = text
@@ -200,39 +201,28 @@ class ChatRepository {
     
     func triggerFillerAudioTask() async {
         var usedFillerIndices: Set<Int> = []
-        try? await Task.sleep(nanoseconds: 200_000_000) // 0.2s
+        try? await Task.sleep(nanoseconds: 1_000_000_000) // 1s
         if isFirstAudioGeneratedFlag { return }
         
-        // Reserve queue slots: #1 = first filler, #2 = second filler, #3+ = LLM audio
-        let firstFillerQueue = indexToQueueNext.getAndIncrement()  // Gets #1
-        let secondFillerQueue = indexToQueueNext.getAndIncrement() // Gets #2 (reserved)
+        // Hardcode first filler to queue 1
+        print("🔊 [Filler] Playing first filler audio at queue #1")
+        continuousAudioPlayer.queueAudio(queueNumber: 1, pcm: GlobalState.fillerAudios.uniqueRandomElement(using: &usedFillerIndices).element)
         
-        print("🔊 [Filler] Playing first filler audio at queue #\(firstFillerQueue)")
-        continuousAudioPlayer.queueAudio(queueNumber: firstFillerQueue, pcm: GlobalState.fillerAudios.uniqueRandomElement(using: &usedFillerIndices).element)
-        
-        // Wait 4 seconds and decide if second filler should play
-        let maxDelay = 4_000_000_000
+        // Wait 5 seconds and decide if second filler should play
+        let maxDelay = 5_000_000_000
         var currentDelay = 0
-        var shouldPlaySecondFiller = true
         
         while !isFirstAudioGeneratedFlag && currentDelay < maxDelay {
             try? await Task.sleep(nanoseconds: 50_000_000) // 0.05s
             currentDelay += 50_000_000
         }
         
-        // If first audio generated during wait, skip second filler
-        if isFirstAudioGeneratedFlag {
-            print("🔊 [Filler] First audio generated during wait - skipping second filler")
-            shouldPlaySecondFiller = false
-        }
-        
-        // Queue second filler only if needed
-        if shouldPlaySecondFiller {
-            print("🔊 [Filler] Max delay reached, playing second filler at queue #\(secondFillerQueue)")
-            continuousAudioPlayer.queueAudio(queueNumber: secondFillerQueue, pcm: GlobalState.fillerAudios.uniqueRandomElement(using: &usedFillerIndices).element)
+        // Only queue second filler if first audio is still not ready after max delay
+        if !isFirstAudioGeneratedFlag {
+            print("🔊 [Filler] Max delay reached, playing second filler at queue #2")
+            continuousAudioPlayer.queueAudio(queueNumber: 2, pcm: GlobalState.fillerAudios.uniqueRandomElement(using: &usedFillerIndices).element)
         } else {
-            print("🔊 [Filler] Second filler skipped - first audio ready")
-            continuousAudioPlayer.skipCurrent()
+            print("🔊 [Filler] Second filler skipped - first audio ready (skip logic now in playback loop)")
         }
     }
     

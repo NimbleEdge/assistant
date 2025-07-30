@@ -35,7 +35,6 @@ class ContinuousAudioPlayer {
         self.audioPlayerNode = AVAudioPlayerNode()
         
         setupAudioEngine()
-        startContinuousPlaybackLoop()
     }
     
     private func setupAudioEngine() {
@@ -83,6 +82,15 @@ class ContinuousAudioPlayer {
         }
     }
     
+    func getCurrentExpectedQueue() -> Int {
+        return expectedQueue.getValue()
+    }
+    
+    func skipToQueue(_ queueNumber: Int) {
+        expectedQueue.set(queueNumber)
+        print("🔊 [Skip] Jumped to queue #\(queueNumber)")
+    }
+    
     func cancelPlaybackAndResetQueue() {
         // Stop the current audio if playing
         if let player = currentAudioPlayer {
@@ -107,12 +115,9 @@ class ContinuousAudioPlayer {
         if !isEngineRunning {
             setupAudioEngine()
         }
-        
-        // Restart the playback loop
-        startContinuousPlaybackLoop()
-    }
+            }
     
-    private func startContinuousPlaybackLoop() {
+    func startContinuousPlaybackLoop() {
         playbackLoopTask = Task(priority: .userInitiated) {
             await continuousPlaybackLoop()
         }
@@ -131,6 +136,13 @@ class ContinuousAudioPlayer {
                     audioQueue.removeValue(forKey: oldChunk)
                     print("🔊 [Cleanup] Removed old chunk \(oldChunk)")
                 }
+            }
+            
+            // Check if we should skip queue 2 (second filler) and jump to queue 3 (first LLM audio)
+            if queueNumber == 2 && hasAudioInQueue(queueNumber: 3) && !hasAudioInQueue(queueNumber: 2) {
+                print("🔊 [Skip] Queue 2 not found but queue 3 available - skipping second filler and jumping to queue 3")
+                skipToQueue(3)
+                continue // Restart loop with new queue number
             }
             
             print("🔊 [Loop] Looking for chunk \(queueNumber), queue has: \(Array(audioQueue.keys).sorted())")
