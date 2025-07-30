@@ -114,3 +114,22 @@ extension String {
         self.removeSubrange(startIndex..<endIndex)
     }
 }
+
+
+extension Array {
+    func uniqueRandomElement(using usedIndices: inout Set<Int>) -> (index: Int, element: Element) {
+        let totalCount = self.count
+
+        // Reset if all elements have been used
+        if usedIndices.count == totalCount {
+            usedIndices.removeAll()
+        }
+
+        // Get available (unused) indices
+        let availableIndices = (0..<totalCount).filter { !usedIndices.contains($0) }
+        let selectedIndex = availableIndices.randomElement()
+
+        usedIndices.insert(selectedIndex!)
+        return (index: selectedIndex!, element: self[selectedIndex!])
+    }
+}
