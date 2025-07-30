@@ -7,17 +7,6 @@
 package dev.deliteai.assistant.presentation.views
 
 import ScrollableTextSuggestions
-import dev.deliteai.assistant.domain.models.ChatMessage
-import dev.deliteai.assistant.presentation.components.MessageBox
-import dev.deliteai.assistant.presentation.components.StyledTextField
-import dev.deliteai.assistant.presentation.components.TopBar
-import dev.deliteai.assistant.presentation.components.VoiceOverlay
-import dev.deliteai.assistant.presentation.ui.theme.accent
-import dev.deliteai.assistant.presentation.ui.theme.backgroundPrimary
-import dev.deliteai.assistant.presentation.ui.theme.backgroundSecondary
-import dev.deliteai.assistant.presentation.ui.theme.textSecondary
-import dev.deliteai.assistant.presentation.viewmodels.ChatViewModel
-import dev.deliteai.assistant.utils.Constants
 import android.app.Application
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
@@ -80,6 +69,17 @@ import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import dev.deliteai.assistant.domain.models.ChatMessage
+import dev.deliteai.assistant.presentation.components.MessageBox
+import dev.deliteai.assistant.presentation.components.StyledTextField
+import dev.deliteai.assistant.presentation.components.TopBar
+import dev.deliteai.assistant.presentation.components.VoiceOverlay
+import dev.deliteai.assistant.presentation.ui.theme.accent
+import dev.deliteai.assistant.presentation.ui.theme.backgroundPrimary
+import dev.deliteai.assistant.presentation.ui.theme.backgroundSecondary
+import dev.deliteai.assistant.presentation.ui.theme.textSecondary
+import dev.deliteai.assistant.presentation.viewmodels.ChatViewModel
+import dev.deliteai.assistant.utils.Constants
 import kotlinx.coroutines.launch
 import java.util.Date
 
@@ -240,6 +240,16 @@ fun ChatView(
                                     }
                                 )
                                 Spacer(Modifier.height(8.dp))
+                            }
+                            if (chatViewModel.thinkingStream.value
+                                    .isNotEmpty()
+                            ) {
+                                item {
+                                    ShimmerThinkingText(
+                                        chatViewModel.thinkingStream.value, style =
+                                        MaterialTheme.typography.bodySmall,
+                                    )
+                                }
                             }
                             item { Spacer(Modifier.height(12.dp)) }
                         }

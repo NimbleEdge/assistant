@@ -100,8 +100,8 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
-    implementation("dev.deliteai:nimblenet_ktx:0.0.1-dev-1751902318")
-    implementation("dev.deliteai:nimblenet_core:0.0.1-dev-1751904491")
+    implementation("dev.deliteai:nimblenet_ktx:0.0.1-dev-1751904494")
+    implementation("dev.deliteai:nimblenet_core:0.0.1-dev-1751904494")
 
     implementation("com.halilibo.compose-richtext:richtext-ui-material3:1.0.0+")
     implementation("com.halilibo.compose-richtext:richtext-commonmark:1.0.0+")

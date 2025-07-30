@@ -42,24 +42,10 @@ fun ScrollableTextSuggestions(
 ) {
     val allSuggestions = remember {
         listOf(
-            "Design workout routine",
-            "Recommend wine pairings",
-            "Write a short poem",
-            "Draft party menu",
-            "Create smoothie blends",
-            "Generate gift ideas",
-            "Craft cocktail ideas",
-            "Mix mocktail recipes",
-            "Suggest hiking essentials",
-            "Plan a game night",
-            "Prep for camping",
-            "Plan a movie marathon",
-            "Invent signature cocktail",
-            "Craft lunchbox ideas",
-            "Who are you?",
-            "Plan a solo trip",
-            "Curate weekend playlist",
-            "Plan a beach day"
+            "How is the weather here?",
+            "Where am I located currently?",
+            "Multiply 23 and 35",
+            "What is time right now?"
         )
     }
 

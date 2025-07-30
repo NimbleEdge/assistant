@@ -6,16 +6,9 @@
 
 package dev.deliteai.assistant.presentation.components
 
-import dev.deliteai.assistant.domain.models.ChatMessage
-import dev.deliteai.assistant.presentation.ui.theme.accentHigh1
-import dev.deliteai.assistant.presentation.ui.theme.accentLow1
-import dev.deliteai.assistant.presentation.ui.theme.backgroundSecondary
-import dev.deliteai.assistant.presentation.viewmodels.ChatViewModel
-import dev.deliteai.assistant.utils.formatTimeUsingSimpleDateFormat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
@@ -33,8 +26,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProvideTextStyle
-import androidx.compose.material3.ripple
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -68,6 +61,12 @@ import com.halilibo.richtext.ui.RichTextStyle
 import com.halilibo.richtext.ui.TableStyle
 import com.halilibo.richtext.ui.material3.RichText
 import com.halilibo.richtext.ui.string.RichTextStringStyle
+import dev.deliteai.assistant.domain.models.ChatMessage
+import dev.deliteai.assistant.presentation.ui.theme.accentHigh1
+import dev.deliteai.assistant.presentation.ui.theme.accentLow1
+import dev.deliteai.assistant.presentation.ui.theme.backgroundSecondary
+import dev.deliteai.assistant.presentation.viewmodels.ChatViewModel
+import dev.deliteai.assistant.utils.formatTimeUsingSimpleDateFormat
 import kotlinx.coroutines.delay
 
 
@@ -126,7 +125,8 @@ fun ColumnScope.MessageBox(
                     )
                 )
                 .background(if (message.isUserMessage) backgroundSecondary else accentLow1)
-                .padding(12.dp)
+                .padding(if (message.message.isEmpty() && !(chatViewModel.currentMessageLoading
+                    .value && isInProgress)) 0.dp else 12.dp)
 
         ) {
             if (chatViewModel.currentMessageLoading.value && isInProgress) {

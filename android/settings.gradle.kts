@@ -25,6 +25,7 @@ dependencyResolutionManagement {
         maven {
             url = uri("https://deliteai.s3.ap-south-1.amazonaws.com/releases-dev/android/")
         }
+        mavenLocal()
     }
 }
 

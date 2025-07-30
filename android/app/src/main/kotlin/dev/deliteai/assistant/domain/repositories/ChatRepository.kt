@@ -19,6 +19,7 @@ import dev.deliteai.assistant.utils.TAG
 import dev.deliteai.assistant.utils.chunkSentence
 import dev.deliteai.assistant.utils.mergeChunks
 import android.util.Log
+import dev.deliteai.impl.common.DATATYPE
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
@@ -51,16 +52,20 @@ class ChatRepository {
 
     suspend fun getModelName() = LLMService.getLLMName()
 
-    fun getLLMText(textInput: String) = flow {
-        LLMService.feedInput(textInput, false)
-        do {
-            val outputMap = LLMService.getNextMap()
-            val currentOutputString = (outputMap["str"] as NimbleNetTensor).data.toString()
-            emit(GenerateResponseJobStatus.NextItem(currentOutputString))
-        } while (!outputMap.containsKey("finished"))
-
-        emit(GenerateResponseJobStatus.Finished())
-        Log.d(TAG, "startFeedbackLoop: LLM finished output")
+    fun getLLMText(textInput: String) = channelFlow {
+        val callback : (String?) -> Unit = { input ->
+            repositoryScope.launch(Dispatchers.IO) {
+                input?.let {
+                    send(GenerateResponseJobStatus.NextItem(input))
+                }
+            }
+        }
+        val response = LLMService.feedInput(textInput, false, callback)
+        response?.let {
+            send(GenerateResponseJobStatus.NextItem(response))
+        }
+        send(GenerateResponseJobStatus.Finished())
+    Log.d(TAG, "startFeedbackLoop: LLM finished output")
     }.flowOn(Dispatchers.Default)
         .catch { throwable ->
             ExceptionLogger.log("getLLMText", throwable)
@@ -71,7 +76,7 @@ class ChatRepository {
         var ttsQueue = ""
         val promptText =
             if (textInput == Constants.errorASRResponse) Constants.errorLLMInput else textInput
-        LLMService.feedInput(promptText, true)
+        LLMService.feedInput(promptText, true){_-> Log.d(TAG, "unsupported")}
         val isFirstJobDone = MutableStateFlow(false)
         val maxJobs = Semaphore(3)
         fillerAudioPlayJob = async(Dispatchers.IO) {

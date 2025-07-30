@@ -160,6 +160,7 @@ class MainViewModel(private val application: Application) : AndroidViewModel(app
 
     private fun getCT(): String? {
         val scriptVersion = "v1.0.1"
+        return "QWEN_ONNX"
 
         val deviceTier = when (remoteConfigRepository.getDeviceTier()) {
             DeviceTier.ONE -> "CHATAPP_TIER_1"
