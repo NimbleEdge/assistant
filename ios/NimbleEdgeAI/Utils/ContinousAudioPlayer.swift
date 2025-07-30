@@ -70,6 +70,16 @@ class ContinuousAudioPlayer {
         }
     }
     
+    func skipCurrent(){
+        expectedQueue.increment()
+    }
+    
+    func hasAudioInQueue(queueNumber: Int) -> Bool {
+        return lock.withLock {
+            audioQueue[queueNumber] != nil
+        }
+    }
+    
     func cancelPlaybackAndResetQueue() {
         // Stop the current audio if playing
         if let player = currentAudioPlayer {

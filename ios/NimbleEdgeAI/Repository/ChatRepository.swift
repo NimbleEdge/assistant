@@ -24,10 +24,12 @@ class ChatRepository {
     let semaphore = AsyncSemaphore(value: 3)
     
     func triggerTTS(text:String, queueToPlayAt: Int) {
+        print("🔊 [TTS] Starting TTS for queue #\(queueToPlayAt), text: \"\(text.prefix(50))...\"")
         let cleanText = cleanText(text)
         let beforeTime = Date().timeIntervalSince1970
         let pcm = try! TTSService.getPCM(input: cleanText)
         let endTime = Date().timeIntervalSince1970
+        print("🔊 [TTS] TTS completed for queue #\(queueToPlayAt) in \(endTime - beforeTime)s, queueing audio")
         Task {
             continuousAudioPlayer.queueAudio(queueNumber: queueToPlayAt, pcm: pcm)
         }
@@ -100,8 +102,10 @@ class ChatRepository {
                     if !isFirstAudioGeneratedFlag && ttsQueue.count >= 80 {
                         let (remaining, candidate) = breakChunks(ttsQueue1: ttsQueue)
                         ttsQueue = remaining
+                        let firstAudioQueue = indexToQueueNext.getAndIncrement()
+                        print("🔊 [LLM] First LLM audio assigned queue #\(firstAudioQueue)")
                         await breakTTSCandidates(ttsQueue1: candidate,
-                                                 queueToPlayAt: indexToQueueNext.getAndIncrement(),
+                                                 queueToPlayAt: firstAudioQueue,
                                                  onFirstAudioGenerated: onFirstAudioGenerated)
                         isFirstAudioGeneratedFlag = true
                         onFirstAudioGenerated()
@@ -185,19 +189,37 @@ class ChatRepository {
         var usedFillerIndices: Set<Int> = []
         try? await Task.sleep(nanoseconds: 200_000_000) // 0.2s
         if isFirstAudioGeneratedFlag { return }
-        continuousAudioPlayer.queueAudio(queueNumber: indexToQueueNext.getAndIncrement(), pcm: GlobalState.fillerAudios.uniqueRandomElement(using: &usedFillerIndices).element)
+        
+        // Reserve queue slots: #1 = first filler, #2 = second filler, #3+ = LLM audio
+        let firstFillerQueue = indexToQueueNext.getAndIncrement()  // Gets #1
+        let secondFillerQueue = indexToQueueNext.getAndIncrement() // Gets #2 (reserved)
+        
+        print("🔊 [Filler] Playing first filler audio at queue #\(firstFillerQueue)")
+        continuousAudioPlayer.queueAudio(queueNumber: firstFillerQueue, pcm: GlobalState.fillerAudios.uniqueRandomElement(using: &usedFillerIndices).element)
+        
+        // Wait 4 seconds and decide if second filler should play
         let maxDelay = 4_000_000_000
         var currentDelay = 0
+        var shouldPlaySecondFiller = true
         
-        while !isFirstAudioGeneratedFlag {
-            if currentDelay >= maxDelay {
-                if indexToQueueNext.getValue() == 2 {
-                    continuousAudioPlayer.queueAudio(queueNumber: indexToQueueNext.getAndIncrement(), pcm: GlobalState.fillerAudios.uniqueRandomElement(using: &usedFillerIndices).element)
-                }
-                break
-            }
-            try? await Task.sleep(nanoseconds: 100_000_000) // 0.1s
-            currentDelay += 100_000_000
+        while !isFirstAudioGeneratedFlag && currentDelay < maxDelay {
+            try? await Task.sleep(nanoseconds: 50_000_000) // 0.05s
+            currentDelay += 50_000_000
+        }
+        
+        // If first audio generated during wait, skip second filler
+        if isFirstAudioGeneratedFlag {
+            print("🔊 [Filler] First audio generated during wait - skipping second filler")
+            shouldPlaySecondFiller = false
+        }
+        
+        // Queue second filler only if needed
+        if shouldPlaySecondFiller {
+            print("🔊 [Filler] Max delay reached, playing second filler at queue #\(secondFillerQueue)")
+            continuousAudioPlayer.queueAudio(queueNumber: secondFillerQueue, pcm: GlobalState.fillerAudios.uniqueRandomElement(using: &usedFillerIndices).element)
+        } else {
+            print("🔊 [Filler] Second filler skipped - first audio ready")
+            continuousAudioPlayer.skipCurrent()
         }
     }
     
