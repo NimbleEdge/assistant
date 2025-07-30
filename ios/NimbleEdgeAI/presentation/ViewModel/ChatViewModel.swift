@@ -47,7 +47,7 @@ class ChatViewModel: ObservableObject {
         self.isOverlayVisible = visible
     }
     func cancelTTS() {
-        chatRepository.continuousAudioPlayer.cancelPlaybackAndResetQueue()
+        chatRepository.continuousAudioPlayer.stopAndResetPlayback()
     }
     
     func set(chatID: String?) {

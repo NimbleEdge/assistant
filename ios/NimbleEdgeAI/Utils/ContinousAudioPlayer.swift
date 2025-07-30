@@ -12,7 +12,7 @@ class ContinuousAudioPlayer {
     private let sampleRate: Int
     private let lock = NSLock()
     private var audioQueue = [Int: [Any]]() 
-    private var expectedQueue = AtomicInteger(value: 1)
+    private var expectedQueueNumber = AtomicInteger(value: 1)
 
     private var playbackLoopTask: Task<Void, Never>?
     private var audioEngine: AVAudioEngine
@@ -52,18 +52,18 @@ class ContinuousAudioPlayer {
         }
     }
     
-    func isPlayingOrMightPlaySoonSubject() -> Bool {
+    func isPlayingOrHasQueuedAudio() -> Bool {
         let trackPlaying = audioPlayerNode.isPlaying
         return (!audioQueue.isEmpty || trackPlaying)
     }
     
-    func queueAudio(queueNumber: Int, pcm: [Any]) {
+    func enqueueAudio(queueNumber: Int, pcm: [Any]) {
         lock.withLock {
             if audioQueue[queueNumber] == nil {
                 audioQueue[queueNumber] = pcm
                 print("[Queue] Enqueued chunk \(queueNumber), total queued: \(audioQueue.count)")
                 print("[Queue] Current queue keys: \(Array(audioQueue.keys).sorted())")
-                print("[Queue] Expected next: \(expectedQueue.getValue())")
+                print("[Queue] Expected next: \(expectedQueueNumber.getValue())")
             } else {
                 print("[Queue] WARNING: Attempted to queue duplicate chunk \(queueNumber) - ignoring")
                 print("[Queue] Current queue keys: \(Array(audioQueue.keys).sorted())")
@@ -71,26 +71,26 @@ class ContinuousAudioPlayer {
         }
     }
     
-    func skipCurrent(){
-        expectedQueue.increment()
+    func skipCurrentQueue(){
+        expectedQueueNumber.increment()
     }
     
-    func hasAudioInQueue(queueNumber: Int) -> Bool {
+    func hasQueuedAudio(queueNumber: Int) -> Bool {
         return lock.withLock {
             audioQueue[queueNumber] != nil
         }
     }
     
-    func getCurrentExpectedQueue() -> Int {
-        return expectedQueue.getValue()
+    func getExpectedQueueNumber() -> Int {
+        return expectedQueueNumber.getValue()
     }
     
-    func skipToQueue(_ queueNumber: Int) {
-        expectedQueue.set(queueNumber)
+    func jumpToQueue(_ queueNumber: Int) {
+        expectedQueueNumber.set(queueNumber)
         print("[Skip] Jumped to queue #\(queueNumber)")
     }
     
-    func cancelPlaybackAndResetQueue() {
+    func stopAndResetPlayback() {
         audioPlayerNode.stop()
         audioPlayerNode.reset()
         
@@ -99,14 +99,14 @@ class ContinuousAudioPlayer {
         lock.withLock {
             audioQueue.removeAll()
         }
-        expectedQueue.set(1)
+        expectedQueueNumber.set(1)
         
         if !isEngineRunning {
             setupAudioEngine()
         }
     }
     
-    func startContinuousPlaybackLoop() {
+    func startPlaybackLoop() {
         playbackLoopTask = Task(priority: .userInitiated) {
             await continuousPlaybackLoop()
         }
@@ -115,7 +115,7 @@ class ContinuousAudioPlayer {
     private func continuousPlaybackLoop() async {
         print("Playback loop started")
         while !Task.isCancelled {
-            let queueNumber = expectedQueue.getValue()
+            let queueNumber = expectedQueueNumber.getValue()
             var segment: [Any]?
             
             // Clean up old chunks that are behind our expected position
@@ -128,9 +128,9 @@ class ContinuousAudioPlayer {
             }
             
             // Check if we should skip queue 2 (second filler) and jump to queue 3 (first LLM audio)
-            if queueNumber == 2 && hasAudioInQueue(queueNumber: 3) && !hasAudioInQueue(queueNumber: 2) {
+            if queueNumber == 2 && hasQueuedAudio(queueNumber: 3) && !hasQueuedAudio(queueNumber: 2) {
                 print("[Skip] Queue 2 not found but queue 3 available - skipping second filler and jumping to queue 3")
-                skipToQueue(3)
+                jumpToQueue(3)
                 continue // Restart loop with new queue number
             }
             
@@ -159,7 +159,7 @@ class ContinuousAudioPlayer {
                     print("[Loop] ERROR: Unknown segment type: \(type(of: nextSegment))")
                 }
                 print("[Loop] Finished playing chunk \(queueNumber), incrementing to \(queueNumber + 1)")
-                expectedQueue.increment()
+                expectedQueueNumber.increment()
             } else {
                 try? await Task.sleep(nanoseconds: 50_000_000) // 50 ms
             }
