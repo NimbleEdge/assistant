@@ -236,21 +236,71 @@ class ChatRepository {
         }
         
         let characters = Array(input.prefix(limit))
-        
-        // Priority 1: Strong sentence breaks (period, exclamation, question)
-        let strongBreaks: Set<Character> = [".", "!", "?"]
-        
-        // Priority 2: Clause breaks (comma, semicolon, colon)
-        let clauseBreaks: Set<Character> = [",", ";", ":"]
-        
-        // Priority 3: Natural pauses (dash, parentheses)
-        let naturalPauses: Set<Character> = ["-", "—", "(", ")", "[", "]"]
-        
-        // Priority 4: Conjunctions and connecting words (look for " and ", " or ", " but ", etc.)
-        let conjunctions = [" and ", " or ", " but ", " so ", " yet ", " for ", " nor ", " because ", " since ", " while ", " although ", " however ", " therefore ", " moreover "]
+        let text = String(characters)
         
         // Search from ideal position (75% of max length) backwards for best break
         let idealPosition = min(Int(Double(maxCharLen) * 0.75), limit - 1)
+        
+        // PRIORITY 0: Structured content breaks - section headers, list boundaries
+        // Look for markdown headers like "**Blend 1:**" or "**Section:**"
+        let headerPattern = "\\*\\*[^*]+\\*\\*"
+        if let regex = try? NSRegularExpression(pattern: headerPattern, options: []) {
+            let matches = regex.matches(in: text, options: [], range: NSRange(location: 0, length: text.count))
+            for match in matches.reversed() {
+                let endIndex = match.range.location + match.range.length
+                if endIndex >= minCharLen && endIndex <= idealPosition {
+                    // Check if there's a line break or colon after the header
+                    if endIndex < text.count {
+                        let nextChar = text[text.index(text.startIndex, offsetBy: endIndex)]
+                        if nextChar == "\n" || nextChar == ":" {
+                            return endIndex + 1
+                        }
+                    }
+                    return endIndex
+                }
+            }
+        }
+        
+        // PRIORITY 0.5: Double line breaks (paragraph/section separators)
+        if let range = text.range(of: "\n\n", options: [.backwards]) {
+            let index = text.distance(from: text.startIndex, to: range.upperBound)
+            if index >= minCharLen && index <= idealPosition {
+                return index
+            }
+        }
+        
+        // PRIORITY 0.7: End of bullet point lists (before section headers)
+        // Look for pattern: "* item\n\n**" or "* item\n**"
+        let bulletEndPattern = "\\*[^\n]+\n(?:\n)?\\*\\*"
+        if let regex = try? NSRegularExpression(pattern: bulletEndPattern, options: []) {
+            let matches = regex.matches(in: text, options: [], range: NSRange(location: 0, length: text.count))
+            for match in matches.reversed() {
+                let breakIndex = match.range.location + match.range.length - 2 // Before the "**"
+                if breakIndex >= minCharLen && breakIndex <= idealPosition {
+                    return breakIndex
+                }
+            }
+        }
+        
+        // PRIORITY 0.8: Single line breaks before section headers
+        if let range = text.range(of: "\n**", options: [.backwards]) {
+            let index = text.distance(from: text.startIndex, to: range.lowerBound) + 1
+            if index >= minCharLen && index <= idealPosition {
+                return index
+            }
+        }
+        
+        // PRIORITY 1: Strong sentence breaks (period, exclamation, question)
+        let strongBreaks: Set<Character> = [".", "!", "?"]
+        
+        // PRIORITY 2: Clause breaks (comma, semicolon, colon)
+        let clauseBreaks: Set<Character> = [",", ";", ":"]
+        
+        // PRIORITY 3: Natural pauses (dash, parentheses)
+        let naturalPauses: Set<Character> = ["-", "—", "(", ")", "[", "]"]
+        
+        // PRIORITY 4: Conjunctions and connecting words (look for " and ", " or ", " but ", etc.)
+        let conjunctions = [" and ", " or ", " but ", " so ", " yet ", " for ", " nor ", " because ", " since ", " while ", " although ", " however ", " therefore ", " moreover "]
         
         // Priority 1: Look for strong sentence breaks near ideal position
         for i in (minCharLen...idealPosition).reversed() {
@@ -289,7 +339,6 @@ class ChatRepository {
         }
         
         // Priority 4: Look for conjunctions
-        let text = String(characters)
         for conjunction in conjunctions {
             if let range = text.range(of: conjunction, options: [.backwards, .caseInsensitive]) {
                 let index = text.distance(from: text.startIndex, to: range.lowerBound)
