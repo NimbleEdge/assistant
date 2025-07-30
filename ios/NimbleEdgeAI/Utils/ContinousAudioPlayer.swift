@@ -23,7 +23,6 @@ class ContinuousAudioPlayer {
     init(sampleRate: Int = 24000) {
         self.sampleRate = sampleRate
         
-        // Initialize persistent audio engine
         self.audioFormat = AVAudioFormat(
             commonFormat: .pcmFormatFloat32,
             sampleRate: Double(sampleRate),
@@ -92,20 +91,16 @@ class ContinuousAudioPlayer {
     }
     
     func cancelPlaybackAndResetQueue() {
-        // Stop and reset the persistent audio engine
         audioPlayerNode.stop()
         audioPlayerNode.reset()
         
-        // Cancel playback loop
         playbackLoopTask?.cancel()
         
-        // Thread-safe queue reset
         lock.withLock {
             audioQueue.removeAll()
         }
         expectedQueue.set(1)
         
-        // Ensure engine is running for next session
         if !isEngineRunning {
             setupAudioEngine()
         }
@@ -141,7 +136,6 @@ class ContinuousAudioPlayer {
             
             print("[Loop] Looking for chunk \(queueNumber), queue has: \(Array(audioQueue.keys).sorted())")
 
-            // Fetch next segment thread-safely
             lock.withLock {
                 segment = audioQueue[queueNumber]
                 if segment != nil {
@@ -167,7 +161,6 @@ class ContinuousAudioPlayer {
                 print("[Loop] Finished playing chunk \(queueNumber), incrementing to \(queueNumber + 1)")
                 expectedQueue.increment()
             } else {
-                // No chunk ready, wait and retry
                 try? await Task.sleep(nanoseconds: 50_000_000) // 50 ms
             }
         }
@@ -199,13 +192,11 @@ class ContinuousAudioPlayer {
             floatChannelData[i] = max(-1.0, min(1.0, pcmData[i]))
         }
         
-        // Start player if not already playing
         if !audioPlayerNode.isPlaying {
             audioPlayerNode.play()
             print("[Audio] Started audio player node")
         }
         
-        // Schedule buffer for gapless playback
         audioPlayerNode.scheduleBuffer(audioBuffer, at: nil, options: []) {
             print("[Audio] Buffer completed: \(pcmData.count) samples")
         }
@@ -227,7 +218,6 @@ class ContinuousAudioPlayer {
     }
 }
 
-// Int32 PCM data now plays directly without creating temporary WAV files
 extension ContinuousAudioPlayer {
     
     private func playAudioSegment(pcmData: [Int32]) async {
@@ -244,8 +234,6 @@ extension ContinuousAudioPlayer {
         
         // Convert Int32 PCM data to Float format for direct playback
         let floatPCM = pcmData.map { value in
-            // Normalize Int32 to Float range [-1.0, 1.0]
-            // Assuming Int32 values are in the range of Int16 for audio
             let clampedValue = max(Int32(Int16.min), min(Int32(Int16.max), value))
             return Float(clampedValue) / Float(Int16.max)
         }
@@ -261,29 +249,24 @@ extension ContinuousAudioPlayer {
         audioBuffer.frameLength = frameCount
         let floatChannelData = audioBuffer.floatChannelData![0]
         
-        // Copy the converted float data to the buffer
         for i in 0..<floatPCM.count {
             floatChannelData[i] = max(-1.0, min(1.0, floatPCM[i]))
         }
         
-        // Start player if not already playing
         if !audioPlayerNode.isPlaying {
             audioPlayerNode.play()
             print("[Audio] Started audio player node for Int32 data")
         }
         
-        // Schedule buffer for gapless playback
         audioPlayerNode.scheduleBuffer(audioBuffer, at: nil, options: []) {
             print("[Audio] Int32 buffer completed: \(pcmData.count) samples")
         }
         
         print("[Audio] Int32 buffer scheduled successfully")
         
-        // Calculate approximate playback duration for pacing
         let durationSeconds = Double(floatPCM.count) / Double(sampleRate)
         let durationNanoseconds = UInt64(durationSeconds * 1_000_000_000)
         
-        // Wait for most of the buffer duration to maintain proper pacing
         try? await Task.sleep(nanoseconds: durationNanoseconds)
     }
     
