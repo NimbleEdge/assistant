@@ -11,9 +11,9 @@ import Combine
 class ContinuousAudioPlayer {
     private let sampleRate: Int
     private let lock = NSLock()
-    private var audioQueue = [Int: [Any]]() 
+    var audioQueue = [Int: [Any]]() 
     private var expectedQueueNumber = AtomicInteger(value: 1)
-
+    var onFinshedPlaying: ((_ queue: Int) -> Void)?
     private var playbackLoopTask: Task<Void, Never>?
     private var audioEngine: AVAudioEngine
     private var audioPlayerNode: AVAudioPlayerNode
@@ -160,6 +160,7 @@ class ContinuousAudioPlayer {
                     print("[Loop] ERROR: Unknown segment type: \(type(of: nextSegment))")
                 }
                 print("[Loop] Finished playing chunk \(queueNumber), incrementing to \(queueNumber + 1)")
+                onFinshedPlaying?(queueNumber)
                 expectedQueueNumber.increment()
             } else {
                 try? await Task.sleep(nanoseconds: 50_000_000) // 50 ms
