@@ -75,7 +75,8 @@ class ChatRepository {
         onOutputString: @escaping (String) -> Void,
         onFirstAudioGenerated: @escaping () -> Void,
         onFinished: @escaping () async -> Void,
-        onError: @escaping (Error) async -> Void
+        onError: @escaping (Error) async -> Void,
+        onAudioFinishedPlaying: (() -> Void)? = nil,
     ) async {
         isLLMActive = true
         nextQueueIndex.set(3) // Reset to 3, filler uses 1 and 2
@@ -143,8 +144,13 @@ class ChatRepository {
                                     Task { await semaphore.signal() }
                                 }
                                 generateTTSAudio(text: textQueue, queueToPlayAt: finalQueue)
+                                //TODO: Not working fine
+                                continuousAudioPlayer.onFinshedPlaying = { queueNumber in
+                                    if finalQueue == queueNumber { onAudioFinishedPlaying?() }
+                                }
                             }
                         }
+                        onOutputString(textQueue)
                         await onFinished()
                         isLLMActive = false
                         break

@@ -91,8 +91,10 @@ class SpeechRecognizer: NSObject, ObservableObject {
             var isFinal = false
 
             if let result = result {
-                DispatchQueue.main.async {
-                    self?.transcript = result.bestTranscription.formattedString
+                if self?.isRecording == true {
+                    DispatchQueue.main.async {
+                        self?.transcript = result.bestTranscription.formattedString
+                    }
                 }
                 isFinal = result.isFinal
             }
@@ -123,6 +125,7 @@ class SpeechRecognizer: NSObject, ObservableObject {
 
         let recordingFormat = inputNode.outputFormat(forBus: 0)
         var lastSpokenTime = Date()
+        var resetTime = 5.0 //for first time its going to be 5 sec, then down to 2 sec
 
         inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { buffer, _ in
             self.recognitionRequest?.append(buffer)
@@ -138,8 +141,9 @@ class SpeechRecognizer: NSObject, ObservableObject {
 
             if avgPower > -45 {
                 lastSpokenTime = Date()
+                resetTime = 2.0
             } else {
-                if Date().timeIntervalSince(lastSpokenTime) > 2.0 {
+                if Date().timeIntervalSince(lastSpokenTime) > resetTime {
                     DispatchQueue.main.async {
                         self.stopRecording()
                         self.onRecordingStoped?()
@@ -162,9 +166,9 @@ class SpeechRecognizer: NSObject, ObservableObject {
     }
 
     func stopRecording() {
+        isRecording = false
         audioEngine.stop()
         recognitionRequest?.endAudio()
-        isRecording = false
         
         // Reset audio session back to playback mode for TTS
         do {

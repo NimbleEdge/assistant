@@ -27,6 +27,7 @@ class ChatViewModel: ObservableObject {
     @Published var isLLMActive: Bool = false
     @Published var isASRActive: Bool = false
     @Published var isUserSpeaking: Bool = false
+    @Published var isLLMSpeaking: Bool = false
     
     // For voice recognition text handling
     @Published var spokenText: String = ""
@@ -48,6 +49,7 @@ class ChatViewModel: ObservableObject {
     }
     func cancelTTS() {
         chatRepository.continuousAudioPlayer.stopAndResetPlayback()
+        isLLMSpeaking = false
     }
     
     func set(chatID: String?) {
@@ -121,7 +123,7 @@ class ChatViewModel: ObservableObject {
         }
         
         if isOverlayVisible {
-            DispatchQueue.main.async { self.isASRActive = true }
+            DispatchQueue.main.async { self.isLLMSpeaking = true }
             chattingTask = Task(priority: .low) {
                 do {
                     await chatRepository.processUserInput(
@@ -168,6 +170,12 @@ class ChatViewModel: ObservableObject {
                             DispatchQueue.main.async {
                                 self?.isLLMActive = false
                             }
+                        },
+                        onAudioFinishedPlaying: { [weak self] in
+                            DispatchQueue.main.async {
+                                self?.isLLMSpeaking = false
+                            }
+                            
                         }
                     )
                 }

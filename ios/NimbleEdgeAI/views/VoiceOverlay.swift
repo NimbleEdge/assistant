@@ -15,6 +15,7 @@ enum VoiceOverlayState {
 struct VoiceOverlay: View {
     @ObservedObject var chatViewModel: ChatViewModel
     @StateObject private var speechRecognizer = SpeechRecognizer()
+    @State var voiceState: VoiceOverlayState = .speaking
     let onDismiss: () -> Void
     
     var body: some View {
@@ -27,7 +28,7 @@ struct VoiceOverlay: View {
             
             VStack(spacing: 16) {
                 AnimatedVoiceOrb(
-                    voiceState: currentState,
+                    voiceState: $voiceState,
                     normalizedVolume: normalizedVolume,
                     baseSize: 120,
                     chatViewModel: chatViewModel,
@@ -37,9 +38,8 @@ struct VoiceOverlay: View {
                 VStack {
                     
                     Text(
-                        chatViewModel.isASRActive ? "Thinking..." :
-                        (speechRecognizer.isRecording && speechRecognizer.transcript.isEmpty) ? "Listening..." :
-                        (speechRecognizer.isRecording && !speechRecognizer.transcript.isEmpty) ? speechRecognizer.transcript :
+                        speechRecognizer.isRecording ? "Listening..." :
+                        chatViewModel.isLLMSpeaking ? speechRecognizer.transcript :
                         "Tap to Speak! Ask me anything..."
                     )
                     .foregroundColor(.white)
@@ -50,16 +50,11 @@ struct VoiceOverlay: View {
                 .frame(maxWidth: .infinity)
                 .padding(16)
                 
-                if chatViewModel.isInterruptButtonVisible {
+                if chatViewModel.isLLMSpeaking {
                     Text("Interrupt")
                         .foregroundColor(.white)
                         .onTapGesture {
-                            chatViewModel.interruptResponse()
-                            if speechRecognizer.isRecording {
-                                speechRecognizer.stopRecording()
-                            } else {
-                                speechRecognizer.startRecording()
-                            }
+                            chatViewModel.cancelTTS()
                         }
                 }
             }
@@ -81,15 +76,28 @@ struct VoiceOverlay: View {
             }
         }
         .preferredColorScheme(.dark)
-        .onAppear {
-            speechRecognizer.onRecordingStoped = {
-                chatViewModel.addNewMessageToChatHistory(message: speechRecognizer.transcript, isUserInput: true)
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: {
-                    chatViewModel.passTextInputToLLM(speechRecognizer.transcript)
+        .onChange(of: speechRecognizer.isRecording, perform: { newValue in
+            voiceState = newValue ? .speaking : .idle
+        })
+        .onChange(of: chatViewModel.isLLMSpeaking, perform: { newValue in
+            if chatViewModel.isLLMSpeaking == false {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: {
+                    speechRecognizer.startRecording()
                 })
             }
-            if speechRecognizer.isAuthorized && !speechRecognizer.isRecording {
+        })
+        .onAppear {
+            DispatchQueue.main.async(execute: {
                 speechRecognizer.startRecording()
+            })
+            
+            speechRecognizer.onRecordingStoped = {
+                let finalTranscript = speechRecognizer.transcript
+                chatViewModel.addNewMessageToChatHistory(message: finalTranscript, isUserInput: true)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: {
+                    print("speechRecognizer.transcript ->> \(finalTranscript)")
+                    chatViewModel.passTextInputToLLM(finalTranscript)
+                })
             }
         }
         .onDisappear {
@@ -109,7 +117,7 @@ struct VoiceOverlay: View {
 }
 
 struct AnimatedVoiceOrb: View {
-    let voiceState: VoiceOverlayState
+    @Binding var voiceState: VoiceOverlayState
     let normalizedVolume: Float
     let baseSize: CGFloat
     @ObservedObject var chatViewModel: ChatViewModel
