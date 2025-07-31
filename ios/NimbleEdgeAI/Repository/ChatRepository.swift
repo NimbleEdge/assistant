@@ -23,6 +23,7 @@ class ChatRepository {
     let nextQueueIndex = AtomicInteger(value: 3) // Start at 3, filler uses 1 and 2
     var hasFirstAudioGenerated = false
     let semaphore = AsyncSemaphore(value: 3)
+    var llmInputTask: Task<Void, Never>?
     
     func generateTTSAudio(text: String, queueToPlayAt: Int) {
         print("[TTS] Starting TTS for queue #\(queueToPlayAt), text: \"\(text.prefix(50))...\"")
@@ -70,6 +71,7 @@ class ChatRepository {
             }
         }
     }
+    
     func processUserInput(
         textInput: String,
         onOutputString: @escaping (String) -> Void,
@@ -83,16 +85,18 @@ class ChatRepository {
         hasFirstAudioGenerated = false
         continuousAudioPlayer.stopAndResetPlayback()
         continuousAudioPlayer.startPlaybackLoop()
+        llmInputTask?.cancel()
 
         var textQueue = ""
 
-        Task(priority: .userInitiated) {
+        llmInputTask = Task(priority: .userInitiated) {
             do {
                 try await llmService.feedInput(input: textInput)
 
                 Task { await playFillerAudio() }
 
                 while true {
+                    print("ChatRepository while loop")
                     let outputMap = try await llmService.getNextMap()
                     let str = outputMap["str"]?.data as? String ?? ""
 
@@ -144,7 +148,6 @@ class ChatRepository {
                                     Task { await semaphore.signal() }
                                 }
                                 generateTTSAudio(text: textQueue, queueToPlayAt: finalQueue)
-                                //TODO: Not working fine
                                 continuousAudioPlayer.onFinshedPlaying = { queueNumber in
                                     if finalQueue == queueNumber { onAudioFinishedPlaying?() }
                                 }

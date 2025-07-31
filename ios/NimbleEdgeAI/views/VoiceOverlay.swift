@@ -22,9 +22,6 @@ struct VoiceOverlay: View {
         ZStack {
             Color.black.opacity(0.8)
                 .ignoresSafeArea()
-                .onTapGesture {
-                    onDismiss()
-                }
             
             VStack(spacing: 16) {
                 AnimatedVoiceOrb(
@@ -40,7 +37,8 @@ struct VoiceOverlay: View {
                     Text(
                         speechRecognizer.isRecording ? "Listening..." :
                         chatViewModel.isLLMSpeaking ? speechRecognizer.transcript :
-                        "Tap to Speak! Ask me anything..."
+                        speechRecognizer.isAudioTimeOut ? "Tap to Speak! Ask me anything..." :
+                        "Processing..."
                     )
                     .foregroundColor(.white)
                     .font(.system(size: 14, weight: .medium))
@@ -50,20 +48,22 @@ struct VoiceOverlay: View {
                 .frame(maxWidth: .infinity)
                 .padding(16)
                 
-                if chatViewModel.isLLMSpeaking {
-                    Text("Interrupt")
-                        .foregroundColor(.white)
-                        .onTapGesture {
-                            chatViewModel.cancelTTS()
-                        }
-                }
+                Text("Interrupt")
+                    .foregroundColor(.white)
+                    .opacity(chatViewModel.isLLMSpeaking ? 1 : 0)
+                    .allowsHitTesting(chatViewModel.isLLMSpeaking)
+                    .onTapGesture {
+                        chatViewModel.cancelTTS()
+                    }
             }
             VStack {
                 HStack {
                     Spacer()
                     Button(action: {
+                        // this will only be needed here because interrupt button will only be displayed when user is not recorading any audio
                         speechRecognizer.stopRecording()
                         chatViewModel.isOverlayVisible = false
+                        chatViewModel.cancelTTS()
                         onDismiss()
                     }) {
                         Image(systemName: "xmark")
@@ -123,7 +123,7 @@ struct AnimatedVoiceOrb: View {
     @ObservedObject var chatViewModel: ChatViewModel
     @ObservedObject var speechRecognizer: SpeechRecognizer
     
-    @State private var idlePulse: CGFloat = 0.8
+    @State private var idlePulse: CGFloat = 1
     @State private var rotation: Double = 0
     @State private var colorRotation: Double = 0
     @State private var waveAlpha: Double = 0.3
@@ -170,19 +170,21 @@ struct AnimatedVoiceOrb: View {
                 }
             )
         }
+        .onChange(of: voiceState, perform: { newValue in
+            if newValue == .idle {
+                withAnimation(
+                    Animation.easeInOut(duration: 1.5)
+                        .repeatForever(autoreverses: true)
+                ) {
+                    idlePulse = 0.95
+                }
+            }
+        })
         .frame(width: baseSize, height: baseSize)
-        .scaleEffect(currentScale)
+        .scaleEffect(CGFloat(speechRecognizer.currentScaleDbLevel))
+        .scaleEffect(idlePulse)
         .onAppear {
             startAnimations()
-        }
-    }
-    
-    private var currentScale: CGFloat {
-        switch voiceState {
-        case .idle:
-            return idlePulse
-        case .speaking:
-            return 1.0 + CGFloat(normalizedVolume) * 0.3
         }
     }
     
@@ -230,7 +232,7 @@ struct AnimatedVoiceOrb: View {
             Animation.easeInOut(duration: 1.5)
                 .repeatForever(autoreverses: true)
         ) {
-            idlePulse = 0.95
+            idlePulse = 1.25
         }
         
         withAnimation(

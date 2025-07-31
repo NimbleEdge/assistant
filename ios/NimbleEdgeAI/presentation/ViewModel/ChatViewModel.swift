@@ -49,6 +49,8 @@ class ChatViewModel: ObservableObject {
     }
     func cancelTTS() {
         chatRepository.continuousAudioPlayer.stopAndResetPlayback()
+        interruptResponse()
+        chatRepository.llmInputTask?.cancel()
         isLLMSpeaking = false
     }
     
@@ -77,8 +79,13 @@ class ChatViewModel: ObservableObject {
     
     func interruptResponse(){
         self.cancelLLM()
-        self.cancelCurrentLLM()
-        self.saveChatToRepository()
+        if chatHistory.last?.message?.isEmpty == true {
+            chatHistory.removeLast()
+            onChatHistoryUpdated?(chatHistory)
+        } else {
+            self.cancelCurrentLLM()
+            self.saveChatToRepository()
+        }
     }
 
     func createChatID() {
@@ -184,7 +191,7 @@ class ChatViewModel: ObservableObject {
         else{
             chattingTask = Task(priority: .low) {
                 do {
-                    await chatRepository.processUserInput(
+                    await chatRepository.processUserTextInput(
                         textInput: textInput,
                         onOutputString: { [weak self] output in
                             if output.isEmpty { return }
