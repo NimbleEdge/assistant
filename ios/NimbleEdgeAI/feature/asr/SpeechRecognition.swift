@@ -12,9 +12,10 @@ import AVFoundation
 class SpeechRecognizer: NSObject, ObservableObject {
     @Published var transcript = ""
     @Published var isRecording = false
-    @Published var isAuthorized = false
     @Published var errorMessage = ""
+    @Published var isAudioTimeOut = false
     var onRecordingStoped: (() -> Void)? = nil
+    @Published var currentScaleDbLevel: Float = 1
     private var speechRecognizer: SFSpeechRecognizer?
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
@@ -22,50 +23,30 @@ class SpeechRecognizer: NSObject, ObservableObject {
 
     override init() {
         super.init()
-
+        
         speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
-
+        
         guard let speechRecognizer = speechRecognizer else {
             errorMessage = "Speech recognizer not available"
             return
         }
-
+        
         if !speechRecognizer.supportsOnDeviceRecognition {
             errorMessage = "On-device recognition not supported"
             return
         }
-
+        
         speechRecognizer.delegate = self
-        requestAuthorization()
-    }
-
-    private func requestAuthorization() {
-        SFSpeechRecognizer.requestAuthorization { [weak self] authStatus in
-            DispatchQueue.main.async {
-                switch authStatus {
-                case .authorized:
-                    self?.isAuthorized = true
-                case .denied, .restricted, .notDetermined:
-                    self?.isAuthorized = false
-                    self?.errorMessage = "Speech recognition not authorized"
-                @unknown default:
-                    self?.isAuthorized = false
-                    self?.errorMessage = "Unknown authorization status"
-                }
-            }
-        }
     }
 
     func startRecording() {
-        guard isAuthorized else {
-            errorMessage = "Not authorized for speech recognition"
-            return
-        }
 
         if recognitionTask != nil {
             recognitionTask?.cancel()
             recognitionTask = nil
         }
+        
+        isAudioTimeOut = false
 
         let audioSession = AVAudioSession.sharedInstance()
         do {
@@ -138,6 +119,10 @@ class SpeechRecognizer: NSObject, ObservableObject {
 
             let rms = sqrt(channelDataValueArray.map { $0 * $0 }.reduce(0, +) / Float(buffer.frameLength))
             let avgPower = 20 * log10(rms)
+            
+            DispatchQueue.main.async {
+                self.currentScaleDbLevel = self.scaleForDbLevel(avgPower)
+            }
 
             if avgPower > -45 {
                 lastSpokenTime = Date()
@@ -145,6 +130,9 @@ class SpeechRecognizer: NSObject, ObservableObject {
             } else {
                 if Date().timeIntervalSince(lastSpokenTime) > resetTime {
                     DispatchQueue.main.async {
+                        if self.transcript.isEmpty {
+                            self.isAudioTimeOut = true
+                        }
                         self.stopRecording()
                         self.onRecordingStoped?()
                     }
@@ -169,6 +157,7 @@ class SpeechRecognizer: NSObject, ObservableObject {
         isRecording = false
         audioEngine.stop()
         recognitionRequest?.endAudio()
+        currentScaleDbLevel = 1
         
         // Reset audio session back to playback mode for TTS
         do {
@@ -177,6 +166,22 @@ class SpeechRecognizer: NSObject, ObservableObject {
         } catch {
             print("Failed to reset audio session to playback: \(error)")
         }
+    }
+    
+    func scaleForDbLevel(_ currentInputDbLevel: Float) -> Float {
+        let minDb: Float = -60   // Minimum dB value expected (quietest)
+        let maxScale: Float = 2.0
+        let minScale: Float = 1.0
+        let scaleMultiplier: Float = 0.5
+
+        // Invert and normalize so louder sounds increase the scale
+        let normalizedDb = (currentInputDbLevel - minDb) / abs(minDb)
+        let rawScale = 1 + normalizedDb * scaleMultiplier
+
+        // Clamp the scale to min and max values
+        let clampedScale = min(max(rawScale, minScale), maxScale)
+
+        return clampedScale
     }
 }
 
@@ -189,4 +194,22 @@ extension SpeechRecognizer: SFSpeechRecognizerDelegate {
             }
         }
     }
+}
+
+
+class MicPermitionHelper {
+    
+    static func requestAuthorization(status: @escaping ((_ status: Bool) -> Void)) {
+        SFSpeechRecognizer.requestAuthorization { authStatus in
+            switch authStatus {
+            case .authorized:
+                return status(true)
+            case .denied, .restricted, .notDetermined:
+                return status(false)
+            @unknown default:
+                return status(false)
+            }
+        }
+    }
+    
 }

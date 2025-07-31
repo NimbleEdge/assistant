@@ -12,7 +12,7 @@ import StoreKit
 @main
 struct NimbleEdgeAIApp: App {
     @State private var isDownloadComplete = false
-    @State private var isLLMDownloaded = true // skipping dowload progress manager
+    @State private var isLLMDownloaded = UserDefaults.standard.bool(forKey: "isLLMDownloaded")
     @State private var showDownloadPage = false
     @State private var showInitialisationFailureAlert = false
     @State private var showAppNotSupportedAlert = false
@@ -105,7 +105,6 @@ struct NimbleEdgeAIApp: App {
         } else {
             let initialiseStatus = initializeNimbeNet()
             showInitialisationFailureAlert = !initialiseStatus
-            waitForIsReady()
         }
     }
 }
@@ -124,12 +123,6 @@ func initializeNimbeNet() -> Bool {
                                           compatibilityTag: compatibilityTag)
 
     return NimbleNetApi.initialize(config: nimbleNetConfig).status
-}
-
-func waitForIsReady() {
-    while !NimbleNetApi.isReady().status {
-        RunLoop.main.run(until: Date().addingTimeInterval(1))
-    }
 }
 
 func setupEspeakCallbacks() {
