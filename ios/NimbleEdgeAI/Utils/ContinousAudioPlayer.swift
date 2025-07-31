@@ -101,9 +101,10 @@ class ContinuousAudioPlayer {
         }
         expectedQueueNumber.set(1)
         
-        if !isEngineRunning {
-            setupAudioEngine()
-        }
+        // Always restart audio engine to ensure clean state after potential ASR session
+        audioEngine.stop()
+        isEngineRunning = false
+        setupAudioEngine()
     }
     
     func startPlaybackLoop() {

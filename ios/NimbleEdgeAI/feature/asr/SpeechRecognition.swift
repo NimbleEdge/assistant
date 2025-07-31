@@ -105,6 +105,14 @@ class SpeechRecognizer: NSObject, ObservableObject {
                     self?.recognitionTask = nil
                     self?.isRecording = false
 
+                    // Reset audio session back to playback mode for TTS
+                    do {
+                        try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
+                        try AVAudioSession.sharedInstance().setActive(true)
+                    } catch {
+                        print("Failed to reset audio session to playback: \(error)")
+                    }
+
                     if let error = error {
                         self?.errorMessage = "Recognition error: \(error.localizedDescription)"
                     }
@@ -157,6 +165,14 @@ class SpeechRecognizer: NSObject, ObservableObject {
         audioEngine.stop()
         recognitionRequest?.endAudio()
         isRecording = false
+        
+        // Reset audio session back to playback mode for TTS
+        do {
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
+            try AVAudioSession.sharedInstance().setActive(true)
+        } catch {
+            print("Failed to reset audio session to playback: \(error)")
+        }
     }
 }
 
