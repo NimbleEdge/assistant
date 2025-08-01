@@ -170,7 +170,7 @@ class SpeechRecognizer: NSObject, ObservableObject {
     
     func scaleForDbLevel(_ currentInputDbLevel: Float) -> Float {
         let minDb: Float = -60   // Minimum dB value expected (quietest)
-        let maxScale: Float = 2.0
+        let maxScale: Float = 2.5
         let minScale: Float = 1.0
         let scaleMultiplier: Float = 0.5
 

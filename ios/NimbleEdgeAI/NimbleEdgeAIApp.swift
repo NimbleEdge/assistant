@@ -24,7 +24,6 @@ struct NimbleEdgeAIApp: App {
 
     init() {
         //FirebaseApp.configure()
-        initializeNimbeNet()
     }
 
     var body: some Scene {
