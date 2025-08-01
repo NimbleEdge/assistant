@@ -49,7 +49,7 @@ class ChatViewModel: ObservableObject {
     }
     func cancelTTS() {
         chatRepository.continuousAudioPlayer.stopAndResetPlayback()
-        interruptResponse()
+        interruptResponse()        
         chatRepository.llmInputTask?.cancel()
         isLLMSpeaking = false
     }
@@ -82,10 +82,9 @@ class ChatViewModel: ObservableObject {
         if chatHistory.last?.message?.isEmpty == true {
             chatHistory.removeLast()
             onChatHistoryUpdated?(chatHistory)
-        } else {
-            self.cancelCurrentLLM()
-            self.saveChatToRepository()
         }
+        self.cancelCurrentLLM()
+//        self.saveChatToRepository()
     }
 
     func createChatID() {
@@ -100,11 +99,10 @@ class ChatViewModel: ObservableObject {
             }
             DispatchQueue.global().async { [weak self] in
                 self?.chatRepository.stopLLM()
-            }
-            
-            isLLMActive = false
-            DispatchQueue.main.async { [weak self] in
-                self?.outputStream = nil
+                DispatchQueue.main.async { [weak self] in
+                    self?.isLLMActive = false
+                    self?.outputStream = nil
+                }
             }
             
         }

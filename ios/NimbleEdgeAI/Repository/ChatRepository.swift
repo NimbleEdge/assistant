@@ -78,7 +78,7 @@ class ChatRepository {
         onFirstAudioGenerated: @escaping () -> Void,
         onFinished: @escaping () async -> Void,
         onError: @escaping (Error) async -> Void,
-        onAudioFinishedPlaying: (() -> Void)? = nil,
+        onAudioFinishedPlaying: (() -> Void)? = nil
     ) async {
         isLLMActive = true
         nextQueueIndex.set(3) // Reset to 3, filler uses 1 and 2
@@ -86,6 +86,7 @@ class ChatRepository {
         continuousAudioPlayer.stopAndResetPlayback()
         continuousAudioPlayer.startPlaybackLoop()
         llmInputTask?.cancel()
+        continuousAudioPlayer.onFinshedPlaying = nil
 
         var textQueue = ""
 
@@ -96,12 +97,11 @@ class ChatRepository {
                 Task { await playFillerAudio() }
 
                 while true {
-                    print("ChatRepository while loop")
                     let outputMap = try await llmService.getNextMap()
                     let str = outputMap["str"]?.data as? String ?? ""
 
                     if !str.isEmpty {
-                        if hasFirstAudioGenerated{
+                        if hasFirstAudioGenerated {
                             onOutputString(str)
                         }
                         textQueue += str
@@ -139,34 +139,38 @@ class ChatRepository {
                     }
 
                     if outputMap["finished"] != nil {
-                        // Process final chunk using same semaphore logic
                         if !textQueue.isEmpty {
                             Task {
                                 await semaphore.wait()
                                 let finalQueue = nextQueueIndex.getAndIncrement()
                                 defer {
-                                    Task { await semaphore.signal() }
+                                    Task { await self.semaphore.signal() }
                                 }
-                                generateTTSAudio(text: textQueue, queueToPlayAt: finalQueue)
-                                continuousAudioPlayer.onFinshedPlaying = { queueNumber in
-                                    if finalQueue == queueNumber { onAudioFinishedPlaying?() }
+                                self.generateTTSAudio(text: textQueue, queueToPlayAt: finalQueue)
+                                self.continuousAudioPlayer.onFinshedPlaying = { queueNumber in
+                                    print("[LLM] On Finished Called for queue #\(queueNumber)")
+                                    if finalQueue == queueNumber {
+                                        onAudioFinishedPlaying?()
+                                        print("[LLM] All Queues Finished Playing, Final Queue #\(finalQueue)")
+                                    }
                                 }
                             }
                         }
+
                         onOutputString(textQueue)
                         await onFinished()
                         isLLMActive = false
                         break
                     }
 
-                    try? await Task.sleep(nanoseconds: 50_000_000) // 50 ms throttle
+                    try? await Task.sleep(nanoseconds: 50_000_000) // 50ms
                 }
             } catch {
                 await onError(error)
             }
         }
     }
-    
+
     func extractTextChunk(queuedText: String, isFirstChunk: Bool = false) -> (remainingText: String, textChunk: String) {
         var textQueue = queuedText
         let cutoffIndex = getCutOffIndexForTTSQueue(in: textQueue, isFirstChunk: isFirstChunk)
