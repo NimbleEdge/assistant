@@ -23,7 +23,7 @@ object Constants {
         "tokenizer_config.json"
     )
     val assetFoldersToCopy = listOf(
-        "espeak-ng-data"
+        "espeak-ng-data-ng-data"
     )
     val defaultRemoteConfig = JSONObject(
         mapOf(

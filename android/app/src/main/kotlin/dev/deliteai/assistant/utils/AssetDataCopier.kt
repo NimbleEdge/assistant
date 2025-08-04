@@ -19,14 +19,13 @@ object AssetDataCopier {
         val prefs = context.getSharedPreferences(assetPath, Context.MODE_PRIVATE)
         val alreadyCopied = prefs.getBoolean(assetPath, false)
 
-        if (alreadyCopied) return // Already copied
+        if (alreadyCopied) return
 
         withContext(Dispatchers.IO) {
             try {
-                val assetFolder = "espeak-ng-data"
                 val outputFolder = File(context.filesDir, "nimbleSDK")
 
-                copyAssetFolder(context, assetFolder, outputFolder)
+                copyAssetFolder(context, assetPath, outputFolder)
 
                 prefs.edit().putBoolean(assetPath, true).apply()
             } catch (e: Exception) {

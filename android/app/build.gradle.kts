@@ -57,6 +57,19 @@ android {
         buildConfigField("String", "NIMBLENET_CONFIG_CLIENT_SECRET", "\"$clientSecret\"")
         buildConfigField("String", "NIMBLENET_CONFIG_HOST", "\"$host\"")
         buildConfigField("String", "LOGGER_KEY", "\"$loggerKey\"")
+        
+        // Specify supported ABIs for the native libraries
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
+        }
+        
+        // External native build configuration
+        externalNativeBuild {
+            cmake {
+                cppFlags += "-std=c++17"
+                arguments += listOf("-DANDROID_STL=c++_shared")
+            }
+        }
     }
 
     buildTypes {
@@ -79,6 +92,17 @@ android {
     }
     buildFeatures {
         compose = true
+    }
+    
+    // NDK configuration for JNI support
+    ndkVersion = "25.1.8937393"
+    
+    // External native build configuration
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
     }
 }
 
