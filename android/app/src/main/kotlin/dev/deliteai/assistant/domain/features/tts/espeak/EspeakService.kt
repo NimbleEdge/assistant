@@ -7,7 +7,7 @@
 package dev.deliteai.assistant.domain.features.tts.espeak
 
 object EspeakService {
-    fun initialize(dataPath: String? = null): Boolean {
+    fun initialize(dataPath: String): Boolean {
         return EspeakManager.initialize(dataPath)
     }
 

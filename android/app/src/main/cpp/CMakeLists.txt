@@ -6,6 +6,12 @@ project("espeak_jni")
 find_library(log-lib log)
 find_library(android-lib android)
 
+# Import the pre-built eSpeak library
+add_library(ttsespeak_imported SHARED IMPORTED)
+set_target_properties(ttsespeak_imported PROPERTIES
+    IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/../jniLibs/${ANDROID_ABI}/libttsespeak.so
+)
+
 # Add the JNI bridge library
 add_library(
     espeak_jni
@@ -18,10 +24,10 @@ target_include_directories(espeak_jni PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-# Link the existing espeak-ng-data library and system libraries
+# Link the imported eSpeak library and system libraries
 target_link_libraries(espeak_jni
-    # Link the existing espeak-ng-data library from jniLibs
-    ${CMAKE_CURRENT_SOURCE_DIR}/../jniLibs/${ANDROID_ABI}/libttsespeak.so
+    # Pre-built eSpeak library
+    ttsespeak_imported
     
     # System libraries
     ${log-lib}

@@ -15,13 +15,13 @@ import java.io.FileOutputStream
 
 object AssetDataCopier {
 
-    suspend fun copyEspeakDataIfNeeded(context: Context, assetPath: String) {
+     fun copyEspeakDataIfNeeded(context: Context, assetPath: String) {
         val prefs = context.getSharedPreferences(assetPath, Context.MODE_PRIVATE)
         val alreadyCopied = prefs.getBoolean(assetPath, false)
 
         if (alreadyCopied) return
 
-        withContext(Dispatchers.IO) {
+//        withContext(Dispatchers.IO) {
             try {
                 val outputFolder = File(context.filesDir, "nimbleSDK")
 
@@ -31,7 +31,7 @@ object AssetDataCopier {
             } catch (e: Exception) {
                 e.printStackTrace()
             }
-        }
+//        }
     }
 
     private fun copyAssetFolder(context: Context, assetPath: String, outDir: File) {

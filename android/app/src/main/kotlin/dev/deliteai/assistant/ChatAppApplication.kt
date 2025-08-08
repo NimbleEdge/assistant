@@ -16,8 +16,8 @@ class ChatAppApplication : Application() {
         super.onCreate()
 
         try {
-            System.loadLibrary("ttsespeak")
-            Log.d(TAG, "Successfully loaded libttsespeak.so")
+            System.loadLibrary("espeak_jni") // Load our JNI bridge (includes eSpeak functions)
+            Log.d(TAG, "Successfully loaded espeak_jni library")
         } catch (e: UnsatisfiedLinkError) {
             Log.e(TAG, "Failed to load native libraries", e)
         }
