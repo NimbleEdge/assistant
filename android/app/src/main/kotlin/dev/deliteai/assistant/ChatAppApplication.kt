@@ -16,7 +16,7 @@ class ChatAppApplication : Application() {
         super.onCreate()
 
         try {
-            System.loadLibrary("espeak_jni") // Load our JNI bridge (includes eSpeak functions)
+            System.loadLibrary("espeak_jni")
             Log.d(TAG, "Successfully loaded espeak_jni library")
         } catch (e: UnsatisfiedLinkError) {
             Log.e(TAG, "Failed to load native libraries", e)

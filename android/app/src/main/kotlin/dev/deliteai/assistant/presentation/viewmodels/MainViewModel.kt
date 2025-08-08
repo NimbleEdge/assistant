@@ -174,9 +174,7 @@ class MainViewModel(private val application: Application) : AndroidViewModel(app
         return (if (ASRService.googleASRIsAvailable(application)) "${deviceTier}_GOOGLE_ASR" else deviceTier) + "_$scriptVersion"
     }
 
-    private fun onSuccessfulCopy(ctx: String) {
-        //TODO: revert
-        val ct = "agents_test"
+    private fun onSuccessfulCopy(ct: String) {
         viewModelScope.launch {
             copyStatusVS.value = "Initializing NimbleEdge AI"
             var dummyProgressJob: Job = startDummyProgress(20)
