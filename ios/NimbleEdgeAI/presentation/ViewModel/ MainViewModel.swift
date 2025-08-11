@@ -7,7 +7,7 @@
 import SwiftUI
 import Combine
 import Foundation
-import NimbleNetiOS
+import DeliteAI
 
 @MainActor
 class MainViewModel: ObservableObject {

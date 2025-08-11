@@ -21,9 +21,9 @@ struct DownloadItem {
     private static let baseDownloadFolder = documentDirectory.appendingPathComponent("nimbleSDK")
 
     private static let kokoroFileName = "kokoro_small_unbatched1.0.0inferencePlan.txt"
-    private static let llamaFolder = "llama-31.0.0llm"
-    private static let llamaFileName = "embedding_quantized_model.onnx.data"
-    private static let llamaCompressedPartFile = "llama-31.0.0llm.zip.gz.part"
+    private static let llamaFolder = "llama-3-executorch-hf1.2.0llm"
+    private static let llamaFileName = "llama-3-executorch-hf.pte"
+    private static let llamaCompressedPartFile = "llama-3-executorch-hf1.2.0llm.zip.gz.part"
 
     static func getDefaultDownloadSize() -> Int64 {
         var downloadSize: Int64 = 0
@@ -46,7 +46,7 @@ struct DownloadItem {
                 downloadedFile: baseDownloadFolder
                     .appendingPathComponent(llamaFolder)
                     .appendingPathComponent(llamaFileName),
-                totalSizeInBytes: 800_000_000,
+                totalSizeInBytes: 1_000_691_496,
                 displayMessage: "Downloading file 2..."
             )
         ]

@@ -5,7 +5,7 @@
  */
 
 import Foundation
-import NimbleNetiOS
+import DeliteAI
 
 class DownloadProgressManager: ObservableObject {
     @Published var percentageCompleted: Float = 0.0

@@ -6,13 +6,12 @@ target 'NimbleEdgeAI Assistant' do
   # Comment the next line if you don't want to use dynamic frameworks
   use_frameworks!
 
-   pod 'NimbleNetiOS', '0.0.5-ios-espeak-rc1'
+   pod 'DeliteAI', :path => '/Users/nimbleedgeadmin/Desktop/NimbleEdge/folk/deliteAI-public/sdks/ios'
    pod 'lottie-ios'
    pod "MarkdownKit"
    pod 'Firebase/Core'
    pod 'FirebaseAnalytics'
    pod 'FirebaseCrashlytics'
-
 
 
 

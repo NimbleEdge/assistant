@@ -5,10 +5,10 @@
  */
 
 import Foundation
-import NimbleNetiOS
+import DeliteAI
 class LLMService {
-    func feedInput(input: String) async throws {
-        try await LLMManager.feedInput(input: input)
+    func feedInput(input: String, isVoiceInitiated: Bool = false) async throws {
+        try await LLMManager.feedInput(input: input, isVoiceInitiated: isVoiceInitiated)
     }
 
     func getNextMap() async throws ->  [String: NimbleNetTensor] {

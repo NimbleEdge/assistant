@@ -10,6 +10,6 @@ class NimbleNetSettings {
     public static var host = "https://apiv3.nimbleedge-staging.com"
     public static var deviceId = "test"
     public static var debug = false
-    public static var compatibilityTag = "ios-DNE"
+    public static var compatibilityTag = "EXECUTORCH_HF_WITH_TTS"
     public static var lowerTierCompatibilityTag = "ios_chatApp_lowerTier"
 }
