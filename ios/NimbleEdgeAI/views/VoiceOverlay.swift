@@ -170,6 +170,9 @@ struct AnimatedVoiceOrb: View {
                 }
             )
         }
+        .onDisappear(perform: {
+            UIApplication.shared.isIdleTimerDisabled = false
+        })
         .onChange(of: voiceState, perform: { newValue in
             if newValue == .idle {
                 withAnimation(
@@ -184,6 +187,7 @@ struct AnimatedVoiceOrb: View {
         .scaleEffect(CGFloat(speechRecognizer.currentScaleDbLevel))
         .scaleEffect(idlePulse)
         .onAppear {
+            UIApplication.shared.isIdleTimerDisabled = true
             startAnimations()
         }
     }

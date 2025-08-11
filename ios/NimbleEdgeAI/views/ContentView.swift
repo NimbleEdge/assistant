@@ -5,6 +5,7 @@
  */
  
 import SwiftUI
+import DeliteAI
 
 @available(iOS 16.0, *)
 struct ContentView: View {

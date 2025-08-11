@@ -7,7 +7,7 @@
 import Foundation
 import SwiftUI
 import Combine
-import NimbleNetiOS
+import DeliteAI
 
 class ChatViewModel: ObservableObject {
     private let chatRepository: ChatRepository = ChatRepository()

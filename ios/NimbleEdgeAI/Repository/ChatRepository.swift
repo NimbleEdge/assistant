@@ -7,7 +7,7 @@
 import Foundation
 import AVFoundation
 import Combine
-import NimbleNetiOS
+import DeliteAI
 
 class ChatRepository {
     
@@ -53,6 +53,12 @@ class ChatRepository {
                 while true {
                     let outputMap = try await llmService.getNextMap()
                     
+                    if outputMap["finished"] != nil {
+                        await onFinished()
+                        isLLMActive = false
+                        break
+                    }
+                    
                     guard let tensor = outputMap["str"],
                           let currentOutputString = tensor.data as? String else {
                         continue
@@ -60,11 +66,8 @@ class ChatRepository {
                     
                     await onOutputString(currentOutputString)
                     
-                    if outputMap["finished"] != nil {
-                        await onFinished()
-                        isLLMActive = false
-                        break
-                    }
+                    try? await Task.sleep(nanoseconds: 50_000_000) // 50ms
+
                 }
             } catch {
                 await onError(error)
@@ -92,7 +95,7 @@ class ChatRepository {
 
         llmInputTask = Task(priority: .userInitiated) {
             do {
-                try await llmService.feedInput(input: textInput)
+                try await llmService.feedInput(input: textInput, isVoiceInitiated: true)
 
                 Task { await playFillerAudio() }
 
@@ -142,19 +145,16 @@ class ChatRepository {
                         if !textQueue.isEmpty {
                             Task {
                                 await semaphore.wait()
-                                let finalQueue = nextQueueIndex.getAndIncrement()
                                 defer {
                                     Task { await self.semaphore.signal() }
                                 }
-                                self.generateTTSAudio(text: textQueue, queueToPlayAt: finalQueue)
-                                self.continuousAudioPlayer.onFinshedPlaying = { queueNumber in
-                                    print("[LLM] On Finished Called for queue #\(queueNumber)")
-                                    if finalQueue == queueNumber {
-                                        onAudioFinishedPlaying?()
-                                        print("[LLM] All Queues Finished Playing, Final Queue #\(finalQueue)")
-                                    }
-                                }
+                                let finalQueue = nextQueueIndex.getAndIncrement()
+                                generateTTSAudio(text: textQueue, queueToPlayAt: finalQueue)
+                                manageOnFinish(finalQueue: finalQueue, onAudioFinishedPlaying: onAudioFinishedPlaying)
                             }
+                        } else {
+                            let finalQueue = (self.nextQueueIndex.getValue() - 1)
+                            manageOnFinish(finalQueue: finalQueue, onAudioFinishedPlaying: onAudioFinishedPlaying)
                         }
 
                         onOutputString(textQueue)
@@ -167,6 +167,16 @@ class ChatRepository {
                 }
             } catch {
                 await onError(error)
+            }
+        }
+    }
+    
+    func manageOnFinish(finalQueue: Int, onAudioFinishedPlaying: (() -> Void)?) {
+        self.continuousAudioPlayer.onFinshedPlaying = { queueNumber in
+            print("[LLM] On Finished Called for queue #\(queueNumber), final Queue: \(finalQueue)")
+            if finalQueue == queueNumber {
+                onAudioFinishedPlaying?()
+                print("[LLM] All Queues Finished Playing, Final Queue #\(finalQueue)")
             }
         }
     }

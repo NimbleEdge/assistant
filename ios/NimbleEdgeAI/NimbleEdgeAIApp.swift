@@ -5,7 +5,7 @@
  */
 
 import SwiftUI
-import NimbleNetiOS
+import DeliteAI
 import Firebase
 import StoreKit
 
@@ -119,15 +119,17 @@ func initializeNimbeNet() -> Bool {
                                           host: NimbleNetSettings.host,
                                           deviceId: NimbleNetSettings.deviceId,
                                           debug: NimbleNetSettings.debug,
-                                          compatibilityTag: compatibilityTag)
+                                          compatibilityTag: compatibilityTag,
+                                          online: true
+    )
 
     return NimbleNetApi.initialize(config: nimbleNetConfig).status
 }
 
 func setupEspeakCallbacks() {
     let espeakNGContext = EspeakNGService.shared
-    EspeakNGCallbacks.initializeEspeakCallback = espeakNGContext.set_espeak_initialize_callback
-    EspeakNGCallbacks.espeakTextToPhonemesCallback = espeakNGContext.set_espeak_text_to_phonemes_callback
+    EspeakNGCallbacks.textToPhonemes = espeakNGContext.set_espeak_text_to_phonemes_callback
+    espeakNGContext.set_espeak_initialize_callback()
 }
 
 class GlobalState {

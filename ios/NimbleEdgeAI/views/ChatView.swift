@@ -7,7 +7,7 @@
 import SwiftUI
 import Combine
 import AVFoundation
-import NimbleNetiOS
+import DeliteAI
 import Lottie
 
 @available(iOS 16.0, *)

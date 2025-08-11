@@ -5,7 +5,7 @@
  */
 
 import Foundation
-import NimbleNetiOS
+import DeliteAI
 
 class TTSManager {
     // Used only during the app init

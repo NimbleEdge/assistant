@@ -67,7 +67,14 @@ struct DownloadingView: View {
             }
             .padding(24)
         }
+        .onDisappear {
+            UIApplication.shared.isIdleTimerDisabled = false
+        }
         .onAppear {
+            
+            //turning off idle display off
+            UIApplication.shared.isIdleTimerDisabled = true
+            
             withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) {
                 blinkAlpha = 0.8
             }
