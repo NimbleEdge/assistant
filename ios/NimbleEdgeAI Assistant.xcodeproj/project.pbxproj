@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		3CA92D0B1B01DD9CADB50BC8 /* Pods_NimbleEdgeAI_Assistant.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1E9E7BB25059570CFDCAC531 /* Pods_NimbleEdgeAI_Assistant.framework */; };
+		89A0D4582E4A7AE8000F0FAF /* secrets.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 89A0D4572E4A7ADB000F0FAF /* secrets.xcconfig */; };
 		C70228B32E3A6B7C000DB603 /* Helpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70228B22E3A6B79000DB603 /* Helpers.swift */; };
 		C70228B52E3A6BB2000DB603 /* AsyncSemaphore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70228B42E3A6BAA000DB603 /* AsyncSemaphore.swift */; };
 		E418195A2DE4F365004499BB /* DownloadItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = E41819592DE4F35E004499BB /* DownloadItem.swift */; };
@@ -61,6 +62,7 @@
 /* Begin PBXFileReference section */
 		1E9E7BB25059570CFDCAC531 /* Pods_NimbleEdgeAI_Assistant.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_NimbleEdgeAI_Assistant.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		4292964F80A942E8B0690AF2 /* Pods-NimbleEdgeAI Assistant.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-NimbleEdgeAI Assistant.debug.xcconfig"; path = "Target Support Files/Pods-NimbleEdgeAI Assistant/Pods-NimbleEdgeAI Assistant.debug.xcconfig"; sourceTree = "<group>"; };
+		89A0D4572E4A7ADB000F0FAF /* secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = secrets.xcconfig; sourceTree = "<group>"; };
 		89F5ED9D2E39F1F500B562E0 /* NimbleEdgeAI Assistant.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "NimbleEdgeAI Assistant.entitlements"; sourceTree = "<group>"; };
 		C70228B22E3A6B79000DB603 /* Helpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Helpers.swift; sourceTree = "<group>"; };
 		C70228B42E3A6BAA000DB603 /* AsyncSemaphore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncSemaphore.swift; sourceTree = "<group>"; };
@@ -257,6 +259,7 @@
 		F1713F272D1024220037358A = {
 			isa = PBXGroup;
 			children = (
+				89A0D4572E4A7ADB000F0FAF /* secrets.xcconfig */,
 				89F5ED9D2E39F1F500B562E0 /* NimbleEdgeAI Assistant.entitlements */,
 				F17C678F2E3338D10071165F /* espeak-ng-data */,
 				E457A8B62E00129E006240CC /* GoogleService-Info.plist */,
@@ -418,6 +421,7 @@
 				F1EFB8042DC4C98B0031A0E1 /* wave_teal.json in Resources */,
 				F1713F3B2D1024240037358A /* Preview Assets.xcassets in Resources */,
 				E457A8B72E00129E006240CC /* GoogleService-Info.plist in Resources */,
+				89A0D4582E4A7AE8000F0FAF /* secrets.xcconfig in Resources */,
 				F1713F382D1024240037358A /* Assets.xcassets in Resources */,
 				E457A8BD2E009B26006240CC /* Launch Screen.storyboard in Resources */,
 			);
@@ -544,6 +548,7 @@
 /* Begin XCBuildConfiguration section */
 		F1713F3C2D1024240037358A /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 89A0D4572E4A7ADB000F0FAF /* secrets.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -608,6 +613,7 @@
 		};
 		F1713F3D2D1024240037358A /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 89A0D4572E4A7ADB000F0FAF /* secrets.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;

@@ -1,5 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
-<dict/>
+<dict>
+    <key>NIMBLE_CLIENT_ID</key>
+    <string>$(NIMBLE_CLIENT_ID)</string>
+
+    <key>NIMBLE_CLIENT_SECRET</key>
+    <string>$(NIMBLE_CLIENT_SECRET)</string>
+
+    <key>NIMBLE_HOST</key>
+    <string>$(NIMBLE_HOST)</string>
+
+    <key>NIMBLE_DEVICE_ID</key>
+    <string>$(NIMBLE_DEVICE_ID)</string>
+
+    <key>NIMBLE_COMPATIBILITY_TAG</key>
+    <string>$(NIMBLE_COMPATIBILITY_TAG)</string>
+
+    <key>NIMBLE_LOWER_TIER_COMPATIBILITY_TAG</key>
+    <string>$(NIMBLE_LOWER_TIER_COMPATIBILITY_TAG)</string>
+</dict>
 </plist>
