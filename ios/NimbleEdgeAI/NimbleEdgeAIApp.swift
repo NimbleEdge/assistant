@@ -23,7 +23,7 @@ struct NimbleEdgeAIApp: App {
 
 
     init() {
-        //FirebaseApp.configure()
+        FirebaseApp.configure()
     }
 
     var body: some Scene {
