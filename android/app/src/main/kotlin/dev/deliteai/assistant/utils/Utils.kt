@@ -24,6 +24,7 @@ import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import android.widget.Toast
+import dev.deliteai.assistant.domain.features.tts.espeak.TextToSpeechImpl
 import dev.deliteai.impl.common.DATATYPE
 import dev.deliteai.impl.common.NIMBLENET_VARIANTS
 import kotlinx.coroutines.delay
@@ -71,16 +72,18 @@ fun byteArrayToFloatArray(
     return floatArray
 }
 
-suspend fun initializeNimbleNetAndWaitForIsReady(application: Application, ct: String) {
+suspend fun initializeNimbleNetAndWaitForIsReady(application: Application, ct: String, textToSpeechImpl: TextToSpeechImpl) {
     val nimblenetConfig = NimbleNetConfig(
         clientId = BuildConfig.NIMBLENET_CONFIG_CLIENT_ID,
         host = BuildConfig.NIMBLENET_CONFIG_HOST,
         deviceId = getInternalDeviceId(application),
         clientSecret = BuildConfig.NIMBLENET_CONFIG_CLIENT_SECRET,
-        debug = false,
+        debug = true,
         compatibilityTag = ct,
         libraryVariant = NIMBLENET_VARIANTS.STATIC,
-        showDownloadProgress = true
+        showDownloadProgress = true,
+        textToSpeechImpl = textToSpeechImpl,
+        online = true
     )
 
     val nimbleNetResult = NimbleNet.initialize(application, nimblenetConfig)

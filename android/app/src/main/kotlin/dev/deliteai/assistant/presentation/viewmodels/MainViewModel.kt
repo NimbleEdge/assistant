@@ -24,6 +24,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.android.play.core.review.ReviewManagerFactory
+import dev.deliteai.assistant.domain.features.tts.espeak.TextToSpeechImpl
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -50,6 +51,7 @@ class MainViewModel(private val application: Application) : AndroidViewModel(app
     val blockedUsageMessageVS = mutableStateOf<String?>(null)
     var isP0LoadingVS = mutableStateOf(true)
     var isFirstBootVS = mutableStateOf(true)
+    val textToSpeechImpl = TextToSpeechImpl(application)
 
     fun initializeApplication() {
         viewModelScope.launch(Dispatchers.IO) {
@@ -186,7 +188,7 @@ class MainViewModel(private val application: Application) : AndroidViewModel(app
 
             val nimblenetInitJob = async(Dispatchers.Default) {
                 try {
-                    initializeNimbleNetAndWaitForIsReady(application, ct)
+                    initializeNimbleNetAndWaitForIsReady(application, ct, textToSpeechImpl)
                 } catch (e: Exception) {
                     copyStatusVS.value = "Initialization failed: ${e.message}"
                     this@launch.cancel("Init error", e)

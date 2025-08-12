@@ -7,11 +7,21 @@
 package dev.deliteai.assistant
 
 import android.app.Application
+import android.util.Log
 import com.google.firebase.FirebaseApp
+import dev.deliteai.assistant.utils.TAG
 
-class ChatAppApplication:Application() {
+class ChatAppApplication : Application() {
     override fun onCreate() {
         super.onCreate()
-        FirebaseApp.initializeApp(this)
+
+        try {
+            System.loadLibrary("espeak_jni")
+            Log.d(TAG, "Successfully loaded espeak_jni library")
+        } catch (e: UnsatisfiedLinkError) {
+            Log.e(TAG, "Failed to load native libraries", e)
+        }
+
+        FirebaseApp.initializeApp(this@ChatAppApplication)
     }
 }

@@ -57,6 +57,19 @@ android {
         buildConfigField("String", "NIMBLENET_CONFIG_CLIENT_SECRET", "\"$clientSecret\"")
         buildConfigField("String", "NIMBLENET_CONFIG_HOST", "\"$host\"")
         buildConfigField("String", "LOGGER_KEY", "\"$loggerKey\"")
+        
+        // Specify supported ABIs for the native libraries
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
+        }
+        
+        // External native build configuration
+        externalNativeBuild {
+            cmake {
+                cppFlags += "-std=c++17"
+                arguments += listOf("-DANDROID_STL=c++_shared")
+            }
+        }
     }
 
     buildTypes {
@@ -80,6 +93,17 @@ android {
     buildFeatures {
         compose = true
     }
+    
+    // NDK configuration for JNI support
+    ndkVersion = "25.1.8937393"
+    
+    // External native build configuration
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
+    }
 }
 
 dependencies {
@@ -100,8 +124,8 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
-    implementation("dev.deliteai:nimblenet_ktx:0.0.1-dev-1751902318")
-    implementation("dev.deliteai:nimblenet_core:0.0.1-dev-1751904491")
+    implementation("dev.deliteai:nimblenet_ktx:0.0.1-dev-43b1948-20250808")
+    implementation("dev.deliteai:nimblenet_core:0.0.1-dev-43b1948-20250808")
 
     implementation("com.halilibo.compose-richtext:richtext-ui-material3:1.0.0+")
     implementation("com.halilibo.compose-richtext:richtext-commonmark:1.0.0+")
