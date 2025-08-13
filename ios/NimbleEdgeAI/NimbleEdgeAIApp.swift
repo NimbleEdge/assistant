@@ -5,14 +5,14 @@
  */
 
 import SwiftUI
-import NimbleNetiOS
+import DeliteAI
 import Firebase
 import StoreKit
 
 @main
 struct NimbleEdgeAIApp: App {
     @State private var isDownloadComplete = false
-    @State private var isLLMDownloaded = true // skipping dowload progress manager
+    @State private var isLLMDownloaded = UserDefaults.standard.bool(forKey: "isLLMDownloaded")
     @State private var showDownloadPage = false
     @State private var showInitialisationFailureAlert = false
     @State private var showAppNotSupportedAlert = false
@@ -98,18 +98,19 @@ struct NimbleEdgeAIApp: App {
     }
 
     func initialise() {
+        setupEspeakCallbacks()
         if DeviceIdentification.getDeviceTier() == .three {
             showAppNotSupportedAlert = true
         } else {
             let initialiseStatus = initializeNimbeNet()
             showInitialisationFailureAlert = !initialiseStatus
-            waitForIsReady()
         }
     }
 }
 
 @discardableResult
 func initializeNimbeNet() -> Bool {
+    setupEspeakCallbacks()
 
     let compatibilityTag = DeviceIdentification.getDeviceTier() == .two ? NimbleNetSettings.lowerTierCompatibilityTag : NimbleNetSettings.compatibilityTag
 
@@ -118,15 +119,17 @@ func initializeNimbeNet() -> Bool {
                                           host: NimbleNetSettings.host,
                                           deviceId: NimbleNetSettings.deviceId,
                                           debug: NimbleNetSettings.debug,
-                                          compatibilityTag: compatibilityTag)
+                                          compatibilityTag: compatibilityTag,
+                                          online: true
+    )
 
     return NimbleNetApi.initialize(config: nimbleNetConfig).status
 }
 
-func waitForIsReady() {
-    while !NimbleNetApi.isReady().status {
-        RunLoop.main.run(until: Date().addingTimeInterval(0.1))
-    }
+func setupEspeakCallbacks() {
+    let espeakNGContext = EspeakNGService.shared
+    EspeakNGCallbacks.textToPhonemes = espeakNGContext.set_espeak_text_to_phonemes_callback
+    espeakNGContext.set_espeak_initialize_callback()
 }
 
 class GlobalState {

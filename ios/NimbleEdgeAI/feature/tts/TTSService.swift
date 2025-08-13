@@ -11,6 +11,7 @@ class TTSService {
         try TTSManager.passLexiconToTheWorkflowScript(lexiconJson: lexiconJson)
     }
 
-    static func getPCM(input: String) ->[Float] {
-        TTSManager.getPCM(input:input) }
+    static func getPCM(input: String) throws ->[Float] {
+        try TTSManager.getPCM(input:input)
+    }
 }

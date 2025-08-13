@@ -5,22 +5,23 @@
  */
 
 import Foundation
-import NimbleNetiOS
+import DeliteAI
 class LLMManager {
-    static func feedInput(input: String) async throws {
+    static func feedInput(input: String, isVoiceInitiated: Bool = false) async throws {
         let methodInput: [String: NimbleNetTensor] = [
-            "query":  NimbleNetTensor(data: input, datatype: .string, shape: nil)
-
+            "query":  NimbleNetTensor(data: input, datatype: .string, shape: nil),
+            "is_voice_initiated": NimbleNetTensor(data: isVoiceInitiated, datatype: .bool, shape: nil)
         ]
         let res = NimbleNetApi.runMethod(methodName: "prompt_llm", inputs: methodInput)
-
+        if res.status == false {
+            throw NSError(domain: "prompt_llm status false", code: 1)
+        }
     }
-    static func getNextMap() async -> [String: NimbleNetTensor] {
+    static func getNextMap() async throws -> [String: NimbleNetTensor] {
         let emptyInput: [String: NimbleNetTensor] = [:]
         let res = NimbleNetApi.runMethod(methodName: "get_next_str", inputs: emptyInput)
         if !res.status {
-            print("Error: Method execution failed")
-            return [:]
+            throw NSError(domain: "get_next_str status false", code: 1)
         }
 
         guard let outputData = res.payload else {

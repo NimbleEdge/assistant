@@ -7,7 +7,7 @@
 import SwiftUI
 import Combine
 import AVFoundation
-import NimbleNetiOS
+import DeliteAI
 import Lottie
 
 @available(iOS 16.0, *)
@@ -18,6 +18,7 @@ struct ChatView: View {
     @FocusState private var isTextFieldFocused: Bool
     @Binding var path: NavigationPath
     @State var hasScrolledToEnd: Bool = false
+    @State private var showMicAccessAlert = false
     @State private var isOverlayVisible: Bool = false
     private var initialOverlayVisibility = false
     @State var keyboardHeight: CGFloat = 0
@@ -65,7 +66,7 @@ struct ChatView: View {
                 
                 chatViewModel.reset()
             },onAudioModeButtonPressed: {
-                isOverlayVisible = true
+                openVoiceOverly()
             },title: "LLama 3.2", path: $path)
             
             if chatViewModel.chatHistory.isEmpty {
@@ -181,12 +182,38 @@ struct ChatView: View {
                 }
             }
         }
+        .alert(isPresented: $showMicAccessAlert) {
+            Alert(
+                title: Text("Microphone Access Needed"),
+                message: Text("Please enable microphone access in Settings to use this feature."),
+                primaryButton: .default(Text("Open Settings")) {
+                    if let settingsUrl = URL(string: UIApplication.openSettingsURLString),
+                       UIApplication.shared.canOpenURL(settingsUrl) {
+                        UIApplication.shared.open(settingsUrl)
+                    }
+                },
+                secondaryButton: .cancel()
+            )
+        }
         .onAppear {
-            isOverlayVisible = initialOverlayVisibility //doing this because @state variable can not be changed from init and accepting @binding is not an option here
+            //doing this because @state variable can not be changed from init and accepting @binding is not an option here
+            if initialOverlayVisibility {
+                openVoiceOverly()
+            }
             shuffleSuggestions()
         }
         .navigationBarHidden(true)
         .background(Color.backgroundPrimary.ignoresSafeArea())
+    }
+    
+    func openVoiceOverly() {
+        MicPermitionHelper.requestAuthorization(status: {  status in
+            if status == false {
+                showMicAccessAlert = true
+            } else {
+                self.isOverlayVisible = true
+            }
+        })
     }
     
     func shuffleSuggestions() {

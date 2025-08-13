@@ -7,7 +7,7 @@
 import Foundation
 import SwiftUI
 import Combine
-import NimbleNetiOS
+import DeliteAI
 
 class ChatViewModel: ObservableObject {
     private let chatRepository: ChatRepository = ChatRepository()
@@ -22,12 +22,12 @@ class ChatViewModel: ObservableObject {
     // Voice overlay state
     @Published var isOverlayVisible: Bool = false
     @Published var isInterruptButtonVisible:Bool = false
-    
-    var lastSentInputToLLM: String = ""
+
     
     @Published var isLLMActive: Bool = false
     @Published var isASRActive: Bool = false
     @Published var isUserSpeaking: Bool = false
+    @Published var isLLMSpeaking: Bool = false
     
     // For voice recognition text handling
     @Published var spokenText: String = ""
@@ -48,7 +48,10 @@ class ChatViewModel: ObservableObject {
         self.isOverlayVisible = visible
     }
     func cancelTTS() {
-       ContinuousAudioPlayer.shared.cancelPlaybackAndResetQueue()
+        chatRepository.continuousAudioPlayer.stopAndResetPlayback()
+        interruptResponse()        
+        chatRepository.llmInputTask?.cancel()
+        isLLMSpeaking = false
     }
     
     func set(chatID: String?) {
@@ -76,8 +79,12 @@ class ChatViewModel: ObservableObject {
     
     func interruptResponse(){
         self.cancelLLM()
+        if chatHistory.last?.message?.isEmpty == true {
+            chatHistory.removeLast()
+            onChatHistoryUpdated?(chatHistory)
+        }
         self.cancelCurrentLLM()
-        self.saveChatToRepository()
+//        self.saveChatToRepository()
     }
 
     func createChatID() {
@@ -92,11 +99,10 @@ class ChatViewModel: ObservableObject {
             }
             DispatchQueue.global().async { [weak self] in
                 self?.chatRepository.stopLLM()
-            }
-            
-            isLLMActive = false
-            DispatchQueue.main.async { [weak self] in
-                self?.outputStream = nil
+                DispatchQueue.main.async { [weak self] in
+                    self?.isLLMActive = false
+                    self?.outputStream = nil
+                }
             }
             
         }
@@ -107,10 +113,10 @@ class ChatViewModel: ObservableObject {
     }
     
     func passTextInputToLLM(_ textInput: String) {
+        
         if(textInput == "") { return }
-        print("LLM Triggered by \(textInput)")
+        
         var index = AtomicInteger(value: 1)
-        lastSentInputToLLM = textInput
         DispatchQueue.main.async {
             self.currentMessageLoading = true
             self.outputStream = ""
@@ -120,33 +126,35 @@ class ChatViewModel: ObservableObject {
             self.chatHistory.append(chatMessage)
             self.onNewMessageAdded?(self.chatHistory.last!)
         }
+        
         if isOverlayVisible {
+            DispatchQueue.main.async { self.isLLMSpeaking = true }
             chattingTask = Task(priority: .low) {
-            do {
-                await chatRepository.processUserInput(
-                    textInput: textInput,
-                    onOutputString: { [weak self] output in
-                        if output.isEmpty { return }
-                        DispatchQueue.main.async {
-                            guard let self, self.isLLMActive else { return }
-
-                            
-                            if let outputStream = self.outputStream, outputStream.isEmpty {
-                                //triming extra spcaes
-                                let newOutputStream = ((self.outputStream ?? "") + output)
-                                if let range = newOutputStream.range(of: "\\S", options: .regularExpression) {
-                                    self.outputStream = newOutputStream[range.lowerBound...].description
+                do {
+                    await chatRepository.processUserInput(
+                        textInput: textInput,
+                        onOutputString: { [weak self] output in
+                            if output.isEmpty { return }
+                            DispatchQueue.main.async {
+                                guard let self, self.isLLMActive else { return }
+                                
+                                
+                                if let outputStream = self.outputStream, outputStream.isEmpty {
+                                    //triming extra spcaes
+                                    let newOutputStream = ((self.outputStream ?? "") + output)
+                                    if let range = newOutputStream.range(of: "\\S", options: .regularExpression) {
+                                        self.outputStream = newOutputStream[range.lowerBound...].description
+                                        self.chatHistory[self.chatHistory.count - 1].message = self.outputStream
+                                        self.onOutputStreamUpdated?(self.outputStream)
+                                    }
+                                } else {
+                                    self.outputStream = (self.outputStream ?? "") + output
                                     self.chatHistory[self.chatHistory.count - 1].message = self.outputStream
                                     self.onOutputStreamUpdated?(self.outputStream)
                                 }
-                            } else {
-                                self.outputStream = (self.outputStream ?? "") + output
-                                self.chatHistory[self.chatHistory.count - 1].message = self.outputStream
-                                self.onOutputStreamUpdated?(self.outputStream)
+                                
                             }
-
-                        }
-                    },
+                        },
                         onFirstAudioGenerated: { [weak self] in
                             DispatchQueue.main.async {
                                 self?.currentMessageLoading = false
@@ -159,6 +167,7 @@ class ChatViewModel: ObservableObject {
                             DispatchQueue.main.async {
                                 self.cancelCurrentLLM()
                                 self.isInterruptButtonVisible = false
+                                self.isASRActive = true
                             }
                         },
                         onError: { [weak self] error in
@@ -166,6 +175,12 @@ class ChatViewModel: ObservableObject {
                             DispatchQueue.main.async {
                                 self?.isLLMActive = false
                             }
+                        },
+                        onAudioFinishedPlaying: { [weak self] in
+                            DispatchQueue.main.async {
+                                self?.isLLMSpeaking = false
+                            }
+                            
                         }
                     )
                 }
@@ -266,9 +281,8 @@ class ChatViewModel: ObservableObject {
             print("Error clearing chat: \(error.localizedMessage)")
         }
     }
-    func playFillerAudio() {
-        chatRepository.playFillerAudio()
-    }
+
+    
     func resetUpdateCallBacks() {
         onNewMessageAdded = nil
         onChatHistoryUpdated = nil

@@ -5,7 +5,7 @@
  */
 
 import Foundation
-import NimbleNetiOS
+import DeliteAI
 
 class DownloadProgressManager: ObservableObject {
     @Published var percentageCompleted: Float = 0.0
@@ -46,7 +46,7 @@ class DownloadProgressManager: ObservableObject {
 
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
-            percentageCompleted = min(percentage, 100.0)
+            percentageCompleted = min(percentage, 100.0)    
             downloadedSizeText = "\(currentSize.asReadableSize()) / \(totalFileSize.asReadableSize())"
         }
 

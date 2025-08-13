@@ -26,6 +26,8 @@ build/
 !default.perspectivev3
 xcuserdata/
 *.xcscmblueprint
+*.xcconfig
+ios/secrets.xcconfig
 
 
 # CocoaPods

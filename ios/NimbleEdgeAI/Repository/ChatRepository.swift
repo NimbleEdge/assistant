@@ -7,20 +7,35 @@
 import Foundation
 import AVFoundation
 import Combine
-import NimbleNetiOS
+import DeliteAI
 
 class ChatRepository {
     
     private var isLLMActive = false
-    let MAX_CHAR_LEN = 200
+    let minimumCharsForTTS = 35
+    let firstChunkMinimumChars = 200
     private var ttsJobs = [Task<Void, Never>]()
     private let repositoryQueue = DispatchQueue(label: "com.app.repository", qos: .userInitiated)
+    private let ttsSemaphore = DispatchSemaphore(value: 3)
+    private let ttsQueue = DispatchQueue(label: "com.yourapp.tts.concurrentQueue", attributes: .concurrent)
+    let llmService = LLMService()
+    let continuousAudioPlayer = ContinuousAudioPlayer()
+    let nextQueueIndex = AtomicInteger(value: 3) // Start at 3, filler uses 1 and 2
+    var hasFirstAudioGenerated = false
+    let semaphore = AsyncSemaphore(value: 3)
+    var llmInputTask: Task<Void, Never>?
     
-    func triggerTTS(text:String,queueNumber:Int) {
-        let pcm = TTSService.getPCM(input: text)
-        ContinuousAudioPlayer.shared.queueAudio(queueNumber: queueNumber, pcm: pcm)
+    func generateTTSAudio(text: String, queueToPlayAt: Int) {
+        print("[TTS] Starting TTS for queue #\(queueToPlayAt), text: \"\(text.prefix(50))...\"")
+        let cleanText = cleanText(text)
+        let beforeTime = Date().timeIntervalSince1970
+        let pcm = try! TTSService.getPCM(input: cleanText)
+        let endTime = Date().timeIntervalSince1970
+        print("[TTS] TTS completed for queue #\(queueToPlayAt) in \(endTime - beforeTime)s, queueing audio")
+        Task {
+            continuousAudioPlayer.enqueueAudio(queueNumber: queueToPlayAt, pcm: pcm)
+        }
     }
-    
     
     func processUserTextInput(
         textInput: String,
@@ -31,128 +46,28 @@ class ChatRepository {
     ) async {
         isLLMActive = true
         
-        let indexToQueueNext = AtomicInteger(value: 1)
         let llmService = LLMService()
-        let semaphore = DispatchSemaphore(value: 3)
-        var ttsQueue = ""
-        var isFirstAudioGenerated = false
         Task(priority: .low) {
             do {
                 try await llmService.feedInput(input: textInput)
                 while true {
                     let outputMap = try await llmService.getNextMap()
                     
+                    if outputMap["finished"] != nil {
+                        await onFinished()
+                        isLLMActive = false
+                        break
+                    }
                     
-                    guard let tensor = outputMap["str"] as? NimbleNetTensor,
+                    guard let tensor = outputMap["str"],
                           let currentOutputString = tensor.data as? String else {
                         continue
                     }
                     
                     await onOutputString(currentOutputString)
                     
-                    if outputMap["finished"] != nil {
-                        await onFinished()
-                        isLLMActive = false
-                        break
-                    }
-                }
-            } catch {
-                await onError(error)
-            }
-        }
-    }
-    func processUserInput(
-        textInput: String,
-        onOutputString: @escaping (String) async -> Void,
-        onFirstAudioGenerated: @escaping () async -> Void,
-        onFinished: @escaping () async -> Void,
-        onError: @escaping (Error) async -> Void
-    ) async {
-        isLLMActive = true
-        
-        let llmService = LLMService()
-        let semaphore = DispatchSemaphore(value: 3)
-        // let indexToQueueNext = AtomicInteger(value: 1)
-        let resetQueueNumber = ContinuousAudioPlayer.shared.cancelPlaybackAndResetQueue()
-        let indexToQueueNext = AtomicInteger(value: resetQueueNumber)
-        var isFirstAudioGeneratedFlag = false
-        var ttsQueue = ""
-        var finalqueue = ""
-        Task(priority: .low) {
-            do {
-                try await llmService.feedInput(input: textInput)
-                while true {
-                    let outputMap = try await llmService.getNextMap()
-                    
-                    guard let tensor = outputMap["str"] as? NimbleNetTensor,
-                          let currentOutputString = tensor.data as? String else {
-                        continue
-                    }
-                    
-                    await onOutputString(currentOutputString)
-                    
-                    finalqueue += currentOutputString
-                    ttsQueue += currentOutputString
-                    
-                    if ttsQueue.count < 2 * MAX_CHAR_LEN && outputMap["finished"] == nil {
-                        continue
-                    }
-                    
-                    var textChunks = chunkText(ttsQueue)
-                    
-                    let totalProcessed = textChunks.reduce(0) { $0 + $1.count }
-                    if totalProcessed < ttsQueue.count {
-                        let startIdx = ttsQueue.index(ttsQueue.startIndex, offsetBy: totalProcessed)
-                        ttsQueue = String(ttsQueue[startIdx...])
-                    } else {
-                        ttsQueue = ""
-                    }
-                    
-                    if outputMap["finished"] != nil && !ttsQueue.isEmpty {
-                        let remainingChunks = chunkText(ttsQueue)
-                        textChunks.append(contentsOf: remainingChunks)
-                        ttsQueue = ""
-                    }
-                    
-                    if !isFirstAudioGeneratedFlag {
-                        if let firstChunk = textChunks.first, !firstChunk.isEmpty {
-                            print("🎙️ First chunk to TTS: \(firstChunk)")
-                            triggerTTS(text: firstChunk, queueNumber: indexToQueueNext.getAndIncrement())
-                            isFirstAudioGeneratedFlag = true
-                            await onFirstAudioGenerated()
-                        }
-                        
-                        for chunk in textChunks.dropFirst() where !chunk.isEmpty {
-                            semaphore.wait()
-                            Task(priority: .userInitiated) {
-                                defer { semaphore.signal() }
-                                do {
-                                    print("🎙️ TTS chunk (first batch): \(chunk)")
-                                    triggerTTS(text: chunk, queueNumber: indexToQueueNext.getAndIncrement())
-                                } catch {
-                                    await onError(error)
-                                }
-                            }
-                        }
-                    } else {
-                        for chunk in textChunks where !chunk.isEmpty {
-                            semaphore.wait()
-                            Task(priority: .userInitiated) {
-                                defer { semaphore.signal() }
-                                do {
-                                    triggerTTS(text: chunk, queueNumber: indexToQueueNext.getAndIncrement())
-                                } catch {
-                                    await onError(error)
-                                }
-                            }
-                        }
-                    }
-                    
-                    if outputMap["finished"] != nil {
-                        await onFinished()
-                        isLLMActive = false
-                        break
-                    }
+                    try? await Task.sleep(nanoseconds: 50_000_000) // 50ms
+
                 }
             } catch {
                 await onError(error)
@@ -160,109 +75,181 @@ class ChatRepository {
         }
     }
     
-    func chunkText(_ text: String) -> [String] {
+    func processUserInput(
+        textInput: String,
+        onOutputString: @escaping (String) -> Void,
+        onFirstAudioGenerated: @escaping () -> Void,
+        onFinished: @escaping () async -> Void,
+        onError: @escaping (Error) async -> Void,
+        onAudioFinishedPlaying: (() -> Void)? = nil
+    ) async {
+        isLLMActive = true
+        nextQueueIndex.set(3) // Reset to 3, filler uses 1 and 2
+        hasFirstAudioGenerated = false
+        continuousAudioPlayer.stopAndResetPlayback()
+        continuousAudioPlayer.startPlaybackLoop()
+        llmInputTask?.cancel()
+        continuousAudioPlayer.onFinshedPlaying = nil
+
+        var textQueue = ""
+
+        llmInputTask = Task(priority: .userInitiated) {
+            do {
+                try await llmService.feedInput(input: textInput, isVoiceInitiated: true)
+
+                Task { await playFillerAudio() }
+
+                while true {
+                    let outputMap = try await llmService.getNextMap()
+                    let str = outputMap["str"]?.data as? String ?? ""
+
+                    if !str.isEmpty {
+                        if hasFirstAudioGenerated {
+                            onOutputString(str)
+                        }
+                        textQueue += str
+                    }
+
+                    // First audio generation – run synchronously for lowest latency
+                    if !hasFirstAudioGenerated && textQueue.count >= firstChunkMinimumChars {
+                        print("[LLM] Creating FIRST chunk (longer) from \(textQueue.count) chars (threshold: \(firstChunkMinimumChars))")
+                        let (remainingText, textChunk) = extractTextChunk(queuedText: textQueue, isFirstChunk: true)
+                        let prev = textQueue
+                        textQueue = remainingText
+                        let firstAudioQueue = nextQueueIndex.getAndIncrement()
+                        print("[LLM] First LLM audio assigned queue #\(firstAudioQueue), chunk size: \(textChunk.count) chars")
+                        generateTTSAudio(text: textChunk, queueToPlayAt: firstAudioQueue)
+                        hasFirstAudioGenerated = true
+                        onFirstAudioGenerated()
+                        onOutputString(prev)
+                    }
+
+                    // Subsequent audio generation – allow concurrent processing
+                    while hasFirstAudioGenerated && textQueue.count >= minimumCharsForTTS {
+                        print("[LLM] Creating SUBSEQUENT chunk (smaller) from \(textQueue.count) chars (threshold: \(minimumCharsForTTS))")
+                        let (remainingText, textChunk) = extractTextChunk(queuedText: textQueue, isFirstChunk: false)
+                        textQueue = remainingText
+
+                        Task {
+                            await semaphore.wait()
+                            let queueNumber = nextQueueIndex.getAndIncrement()
+                            print("[LLM] Subsequent chunk assigned queue #\(queueNumber), chunk size: \(textChunk.count) chars")
+                            defer {
+                                Task { await semaphore.signal() }
+                            }
+                            generateTTSAudio(text: textChunk, queueToPlayAt: queueNumber)
+                        }
+                    }
+
+                    if outputMap["finished"] != nil {
+                        if !textQueue.isEmpty {
+                            Task {
+                                await semaphore.wait()
+                                defer {
+                                    Task { await self.semaphore.signal() }
+                                }
+                                let finalQueue = nextQueueIndex.getAndIncrement()
+                                generateTTSAudio(text: textQueue, queueToPlayAt: finalQueue)
+                                manageOnFinish(finalQueue: finalQueue, onAudioFinishedPlaying: onAudioFinishedPlaying)
+                            }
+                        } else {
+                            let finalQueue = (self.nextQueueIndex.getValue() - 1)
+                            manageOnFinish(finalQueue: finalQueue, onAudioFinishedPlaying: onAudioFinishedPlaying)
+                        }
+
+                        onOutputString(textQueue)
+                        await onFinished()
+                        isLLMActive = false
+                        break
+                    }
+
+                    try? await Task.sleep(nanoseconds: 50_000_000) // 50ms
+                }
+            } catch {
+                await onError(error)
+            }
+        }
+    }
+    
+    func manageOnFinish(finalQueue: Int, onAudioFinishedPlaying: (() -> Void)?) {
+        self.continuousAudioPlayer.onFinshedPlaying = { queueNumber in
+            print("[LLM] On Finished Called for queue #\(queueNumber), final Queue: \(finalQueue)")
+            if finalQueue == queueNumber {
+                onAudioFinishedPlaying?()
+                print("[LLM] All Queues Finished Playing, Final Queue #\(finalQueue)")
+            }
+        }
+    }
+
+    func extractTextChunk(queuedText: String, isFirstChunk: Bool = false) -> (remainingText: String, textChunk: String) {
+        var textQueue = queuedText
+        let cutoffIndex = getCutOffIndexForTTSQueue(in: textQueue, isFirstChunk: isFirstChunk)
+        let textChunk = textQueue.slice(from: 0, to: cutoffIndex)
+        textQueue.removeChunk(from: 0, to: cutoffIndex)
+        return (textQueue, textChunk)
+    }
+    
+    func processTextIntoChunks(queuedText: String, startingQueueNumber: Int, onFirstAudioGenerated: @escaping () async -> Void) async {
+        let text = queuedText.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Break down large text into smaller chunks
+        var remainingText = text
+        var currentQueueNumber = startingQueueNumber
         
-        let cleanedText = text
+        while !remainingText.isEmpty && remainingText.count > minimumCharsForTTS {
+            let cutoffIndex = getCutOffIndexForTTSQueue(in: remainingText, isFirstChunk: false)
+            let chunk = remainingText.slice(from: 0, to: cutoffIndex)
+            remainingText.removeChunk(from: 0, to: cutoffIndex)
+            
+            if !chunk.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                generateTTSAudio(text: chunk, queueToPlayAt: currentQueueNumber)
+                currentQueueNumber = nextQueueIndex.getAndIncrement()
+            }
+        }
+        
+        // Handle any remaining text
+        if !remainingText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            generateTTSAudio(text: remainingText, queueToPlayAt: currentQueueNumber)
+        }
+    }
+    
+    private func cleanText(_ text: String) -> String {
+        let cleaned = text
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .replacingOccurrences(of: "[\"*#]", with: "", options: .regularExpression)
             .replacingOccurrences(of: "\n", with: "…")
+        return cleaned
+    }
+
+    
+    func playFillerAudio() async {
+        var usedFillerIndices: Set<Int> = []
+        try? await Task.sleep(nanoseconds: 2_000_000_000) // 1s
+        if hasFirstAudioGenerated { return }
         
+        // Hardcode first filler to queue 1
+        print("[Filler] Playing first filler audio at queue #1")
+        continuousAudioPlayer.enqueueAudio(queueNumber: 1, pcm: GlobalState.fillerAudios.uniqueRandomElement(using: &usedFillerIndices).element)
         
-        let regexPattern = #"(\S.*?(?:[!?:]|\. (?!\d)))(?=\s+|$)"#
-        guard let regex = try? NSRegularExpression(pattern: regexPattern, options: []) else {
-            return []
+        // Wait 5 seconds and decide if second filler should play
+        let maxDelay = 6_000_000_000
+        var currentDelay = 0
+        
+        while !hasFirstAudioGenerated && currentDelay < maxDelay {
+            try? await Task.sleep(nanoseconds: 50_000_000) // 0.05s
+            currentDelay += 50_000_000
         }
         
-        let range = NSRange(location: 0, length: cleanedText.utf16.count)
-        let matches = regex.matches(in: cleanedText, options: [], range: range)
-        
-        var inputChunks = matches.map {
-            if let range = Range($0.range, in: cleanedText) {
-                return String(cleanedText[range]).trimmingCharacters(in: .whitespacesAndNewlines)
-            }
-            return ""
-        }.filter { !$0.isEmpty }
-        
-        inputChunks = inputChunks.flatMap { chunkSentence($0) }
-        
-        inputChunks = mergeChunks(inputChunks)
-        
-        return inputChunks
-    }
-    
-    
-    func chunkSentence(_ input: String) -> [String] {
-        var chunkedList: [String] = []
-        
-        if input.count < MAX_CHAR_LEN {
-            chunkedList.append(input)
-        } else if input.contains(",") {
-            let commaSplits = input.split(separator: ",", maxSplits: 2, omittingEmptySubsequences: false).map { String($0) }
-            var splitsMerged: [String] = [""]
-            var curIdx = 0
-            
-            for (idx, split) in commaSplits.enumerated() {
-                if splitsMerged[curIdx].count + split.count < MAX_CHAR_LEN {
-                    if idx > 0 { splitsMerged[curIdx] += "," }
-                    splitsMerged[curIdx] += split
-                } else if split.count > MAX_CHAR_LEN {
-                    let spaceSplits = split
-                        .split(separator: " ")
-                        .chunked(into: 6)
-                        .map { $0.joined(separator: " ") }
-                    
-                    splitsMerged[curIdx] += ","
-                    
-                    var spaceIndex = 0
-                    while spaceIndex < spaceSplits.count {
-                        let s = spaceSplits[spaceIndex]
-                        if splitsMerged[curIdx].count + s.count < MAX_CHAR_LEN {
-                            splitsMerged[curIdx] += s
-                            spaceIndex += 1
-                        } else {
-                            splitsMerged.append(s)
-                            curIdx += 1
-                            spaceIndex += 1
-                        }
-                    }
-                } else {
-                    splitsMerged.append(split)
-                    curIdx += 1
-                }
-            }
-            
-            chunkedList.append(contentsOf: splitsMerged)
+        // Only queue second filler if first audio is still not ready after max delay
+        if !hasFirstAudioGenerated {
+            print("[Filler] Max delay reached, playing second filler at queue #2")
+            continuousAudioPlayer.enqueueAudio(queueNumber: 2, pcm: GlobalState.fillerAudios.uniqueRandomElement(using: &usedFillerIndices).element)
         } else {
-            let spaceChunks = input
-                .split(separator: " ")
-                .chunked(into: 6)
-                .map { $0.joined(separator: " ") }
-            
-            chunkedList.append(contentsOf: spaceChunks)
+            print("[Filler] Second filler skipped - first audio ready (skip logic now in playback loop)")
         }
-        
-        return chunkedList
     }
     
-    func mergeChunks(_ chunks: [String]) -> [String] {
-        var mergedChunks: [String] = [""]
-        var curIdx = 0
-        
-        for (idx, text) in chunks.enumerated() {
-            if text.count + mergedChunks[curIdx].count < MAX_CHAR_LEN / 2 {
-                mergedChunks[curIdx] += (idx == 0 ? "" : " ") + text
-            } else {
-                mergedChunks.append(text)
-                curIdx += 1
-            }
-        }
-        
-        return mergedChunks
-    }
-    
-    
-    
-    
+  
     func stopLLM() {
         do {
             try LLMService().stopLLM()
@@ -271,43 +258,5 @@ class ChatRepository {
             print("error stopping LLM")
         }
     }
-    
-    
-    private func isAnyTTSJobActive() -> Bool {
-        for job in ttsJobs {
-            if !job.isCancelled {
-                return true
-            }
-        }
-        return false
-    }
-    func findCutoffIndexForTTSCandidate(text: String, maxLength: Int) -> Int? {
-        if text.count < 12 {
-            return nil
-        }
-        
-        let punctuationMarks = [". ", ", ", "? ", "! ", ":", "\n"]
-        let searchRangeEnd = min(text.count, maxLength)
-        let searchRange = String(text.prefix(searchRangeEnd))
-        
-        // Find the last occurrence of each punctuation mark
-        let indices = punctuationMarks.compactMap { mark in
-            searchRange.range(of: mark, options: .backwards)?.lowerBound
-        }.map { searchRange.distance(from: searchRange.startIndex, to: $0) }
-        
-        let lastPunctuation = indices.max()
-        
-        return lastPunctuation != nil ? lastPunctuation! + 1 : text.count
-    }
-    
-    func playFillerAudio() {
-        ContinuousAudioPlayer.shared.expectedFillerQueue = 1
-        Task {
-            try? await Task.sleep(nanoseconds: 100_000_000)
-            ContinuousAudioPlayer.shared.queueAudio(queueNumber: 1, pcm: GlobalState.fillerAudios.randomElement() ?? [])
-            try? await Task.sleep(nanoseconds: 700_000_000)
-            ContinuousAudioPlayer.shared.queueAudio(queueNumber: 2, pcm: GlobalState.fillerAudios.randomElement() ?? [])
-        }
-    }
-}
 
+}

@@ -93,3 +93,43 @@ extension Error {
         return self.localizedDescription
     }
 }
+
+
+extension String {
+    func slice(from start: Int, to end: Int) -> String {
+        guard start >= 0, end < self.count, start <= end else { return "" }
+
+        let startIdx = self.index(self.startIndex, offsetBy: start)
+        let endIdx = self.index(self.startIndex, offsetBy: end + 1)
+
+        return String(self[startIdx..<endIdx])
+    }
+
+    mutating func removeChunk(from start: Int, to end: Int) {
+        guard start >= 0, end < self.count, start <= end else { return }
+
+        let startIndex = self.index(self.startIndex, offsetBy: start)
+        let endIndex = self.index(self.startIndex, offsetBy: end + 1)
+
+        self.removeSubrange(startIndex..<endIndex)
+    }
+}
+
+
+extension Array {
+    func uniqueRandomElement(using usedIndices: inout Set<Int>) -> (index: Int, element: Element) {
+        let totalCount = self.count
+
+        // Reset if all elements have been used
+        if usedIndices.count == totalCount {
+            usedIndices.removeAll()
+        }
+
+        // Get available (unused) indices
+        let availableIndices = (0..<totalCount).filter { !usedIndices.contains($0) }
+        let selectedIndex = availableIndices.randomElement()
+
+        usedIndices.insert(selectedIndex!)
+        return (index: selectedIndex!, element: self[selectedIndex!])
+    }
+}

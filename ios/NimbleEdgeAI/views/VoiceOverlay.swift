@@ -15,49 +15,55 @@ enum VoiceOverlayState {
 struct VoiceOverlay: View {
     @ObservedObject var chatViewModel: ChatViewModel
     @StateObject private var speechRecognizer = SpeechRecognizer()
+    @State var voiceState: VoiceOverlayState = .speaking
     let onDismiss: () -> Void
+    
     var body: some View {
         ZStack {
             Color.black.opacity(0.8)
                 .ignoresSafeArea()
-                .onTapGesture {
-                    onDismiss()
-                }
             
             VStack(spacing: 16) {
                 AnimatedVoiceOrb(
-                    voiceState: currentState,
+                    voiceState: $voiceState,
                     normalizedVolume: normalizedVolume,
                     baseSize: 120,
                     chatViewModel: chatViewModel,
                     speechRecognizer: speechRecognizer
                 )
                 
-                AnimatedSpeechText(
-                    isUserSpeaking: speechRecognizer.isRecording,
-                    currentText: speechRecognizer.transcript,
-                    persistedText: speechRecognizer.transcript
-                )
-                
-                if chatViewModel.isInterruptButtonVisible {
-                    Text("Interrupt")
-                        .foregroundColor(.white)
-                        .onTapGesture {
-                            chatViewModel.interruptResponse()
-                            if speechRecognizer.isRecording {
-                                speechRecognizer.stopRecording()
-                            } else {
-                                speechRecognizer.startRecording()
-                            }
-                        }
+                VStack {
+                    
+                    Text(
+                        speechRecognizer.isRecording ? "Listening..." :
+                        chatViewModel.isLLMSpeaking ? speechRecognizer.transcript :
+                        speechRecognizer.isAudioTimeOut ? "Tap to Speak! Ask me anything..." :
+                        "Processing..."
+                    )
+                    .foregroundColor(.white)
+                    .font(.system(size: 14, weight: .medium))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 16)
                 }
+                .frame(maxWidth: .infinity)
+                .padding(16)
+                
+                Text("Interrupt")
+                    .foregroundColor(.white)
+                    .opacity(chatViewModel.isLLMSpeaking ? 1 : 0)
+                    .allowsHitTesting(chatViewModel.isLLMSpeaking)
+                    .onTapGesture {
+                        chatViewModel.cancelTTS()
+                    }
             }
             VStack {
                 HStack {
                     Spacer()
                     Button(action: {
+                        // this will only be needed here because interrupt button will only be displayed when user is not recorading any audio
                         speechRecognizer.stopRecording()
                         chatViewModel.isOverlayVisible = false
+                        chatViewModel.cancelTTS()
                         onDismiss()
                     }) {
                         Image(systemName: "xmark")
@@ -70,9 +76,28 @@ struct VoiceOverlay: View {
             }
         }
         .preferredColorScheme(.dark)
+        .onChange(of: speechRecognizer.isRecording, perform: { newValue in
+            voiceState = newValue ? .speaking : .idle
+        })
+        .onChange(of: chatViewModel.isLLMSpeaking, perform: { newValue in
+            if chatViewModel.isLLMSpeaking == false {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: {
+                    speechRecognizer.startRecording()
+                })
+            }
+        })
         .onAppear {
-            if speechRecognizer.isAuthorized && !speechRecognizer.isRecording {
+            DispatchQueue.main.async(execute: {
                 speechRecognizer.startRecording()
+            })
+            
+            speechRecognizer.onRecordingStoped = {
+                let finalTranscript = speechRecognizer.transcript
+                chatViewModel.addNewMessageToChatHistory(message: finalTranscript, isUserInput: true)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: {
+                    print("speechRecognizer.transcript ->> \(finalTranscript)")
+                    chatViewModel.passTextInputToLLM(finalTranscript)
+                })
             }
         }
         .onDisappear {
@@ -92,13 +117,13 @@ struct VoiceOverlay: View {
 }
 
 struct AnimatedVoiceOrb: View {
-    let voiceState: VoiceOverlayState
+    @Binding var voiceState: VoiceOverlayState
     let normalizedVolume: Float
     let baseSize: CGFloat
     @ObservedObject var chatViewModel: ChatViewModel
     @ObservedObject var speechRecognizer: SpeechRecognizer
     
-    @State private var idlePulse: CGFloat = 0.8
+    @State private var idlePulse: CGFloat = 1
     @State private var rotation: Double = 0
     @State private var colorRotation: Double = 0
     @State private var waveAlpha: Double = 0.3
@@ -137,30 +162,33 @@ struct AnimatedVoiceOrb: View {
                 onTap: {
                     if speechRecognizer.isRecording {
                         speechRecognizer.stopRecording()
-                        chatViewModel.playFillerAudio()
                         chatViewModel.addNewMessageToChatHistory(message: speechRecognizer.transcript, isUserInput: true)
                         chatViewModel.passTextInputToLLM(speechRecognizer.transcript)
-                        speechRecognizer.fullTranscript = ""
-
                     } else {
                         speechRecognizer.startRecording()
                     }
                 }
             )
         }
+        .onDisappear(perform: {
+            UIApplication.shared.isIdleTimerDisabled = false
+        })
+        .onChange(of: voiceState, perform: { newValue in
+            if newValue == .idle {
+                withAnimation(
+                    Animation.easeInOut(duration: 1.5)
+                        .repeatForever(autoreverses: true)
+                ) {
+                    idlePulse = 0.95
+                }
+            }
+        })
         .frame(width: baseSize, height: baseSize)
-        .scaleEffect(currentScale)
+        .scaleEffect(CGFloat(speechRecognizer.currentScaleDbLevel))
+        .scaleEffect(idlePulse)
         .onAppear {
+            UIApplication.shared.isIdleTimerDisabled = true
             startAnimations()
-        }
-    }
-    
-    private var currentScale: CGFloat {
-        switch voiceState {
-        case .idle:
-            return idlePulse
-        case .speaking:
-            return 1.0 + CGFloat(normalizedVolume) * 0.3
         }
     }
     
@@ -208,7 +236,7 @@ struct AnimatedVoiceOrb: View {
             Animation.easeInOut(duration: 1.5)
                 .repeatForever(autoreverses: true)
         ) {
-            idlePulse = 0.95
+            idlePulse = 1.25
         }
         
         withAnimation(
@@ -335,35 +363,3 @@ struct OuterWaveView: View {
             .frame(width: size * 1.3, height: size * 1.3)
     }
 }
-
-struct AnimatedSpeechText: View {
-    let isUserSpeaking: Bool
-    let currentText: String
-    let persistedText: String
-    
-    var body: some View {
-        VStack {
-            Text(textToShow)
-                .foregroundColor(.white)
-                .font(.system(size: 14, weight: .medium))
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 16)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(16)
-    }
-    
-    private var textToShow: String {
-        switch true {
-        case isUserSpeaking:
-            return "Listening..."
-        case !currentText.isEmpty:
-            return currentText
-        case !persistedText.isEmpty:
-            return persistedText
-        default:
-            return "Tap to Speak! Ask me anything..."
-        }
-    }
-}
-
