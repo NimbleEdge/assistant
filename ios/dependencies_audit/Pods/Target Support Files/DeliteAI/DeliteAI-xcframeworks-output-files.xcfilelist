@@ -1,0 +1,5 @@
+${PODS_XCFRAMEWORKS_BUILD_DIR}/DeliteAI/onnxruntime.framework
+${PODS_XCFRAMEWORKS_BUILD_DIR}/DeliteAI/nimblenet.framework
+${PODS_XCFRAMEWORKS_BUILD_DIR}/DeliteAI/onnxruntime-genai.framework
+${PODS_XCFRAMEWORKS_BUILD_DIR}/DeliteAI/onnxruntime_extensions.framework
+${PODS_XCFRAMEWORKS_BUILD_DIR}/DeliteAI/LLaMARunner.framework

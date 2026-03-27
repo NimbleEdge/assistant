@@ -1,0 +1,6 @@
+${PODS_ROOT}/Target Support Files/DeliteAI/DeliteAI-xcframeworks.sh
+${PODS_ROOT}/DeliteAI/deliteAI/Assets/onnxruntime.xcframework
+${PODS_ROOT}/DeliteAI/deliteAI/Assets/nimblenet.xcframework
+${PODS_ROOT}/DeliteAI/deliteAI/Assets/onnxruntime-genai.xcframework
+${PODS_ROOT}/DeliteAI/deliteAI/Assets/onnxruntime_extensions.xcframework
+${PODS_ROOT}/DeliteAI/deliteAI/Assets/LLaMARunner.xcframework
